@@ -44,12 +44,12 @@ def build_seed(
 async def expand_batched(
     seed_works,
     oa_client: OpenAlexClient,
-    hops: int =1,
-    min_citations: int=20,
-    year_gt: int=1920,
-    select: str="id,doi,title,publication_year,cited_by_count,cited_by_api_url",
-    delay_between_calls: float=0.0,
-) -> tuple[list,list]:
+    hops: int = 1,
+    min_citations: int = 20,
+    year_gt: int = 1920,
+    select: str = "id,doi,title,publication_year,cited_by_count,cited_by_api_url",
+    delay_between_calls: float = 0.0,
+) -> tuple[list, list]:
     """Expands a seed set of works by collecting citing works in hops.
     Args:
         seed_works (list): Initial list of works to expand from.

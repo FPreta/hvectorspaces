@@ -1,6 +1,4 @@
 from dotenv import load_dotenv
-import psycopg2
-import pytest
 
 from hvectorspaces.io.cockroach_client import CockroachClient
 
@@ -34,9 +32,10 @@ def test_cockroach_tables():
 
         # Drop table
         client.drop_table(table_name)
-        with pytest.raises(psycopg2.Error):
-            with client.conn.cursor() as cur:
-                cur.execute(f"SELECT to_regclass('{table_name}');")
+        with client.conn.cursor() as cur:
+            cur.execute(f"SELECT to_regclass('{table_name}');")
+            result = cur.fetchone()
+            assert result[0] is None  # table no longer exists
 
 
 def test_cockroach_upload():

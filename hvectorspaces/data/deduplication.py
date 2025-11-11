@@ -9,6 +9,7 @@ class Deduper:
     of these identifiers have already been seen, the work is considered a duplicate
     and is not added.
     """
+
     def __init__(self):
         self.by_doi, self.by_oaid, self.by_title = set(), set(), set()
         self.kept = []

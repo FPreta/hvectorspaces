@@ -8,15 +8,17 @@ def test_openalex_fetch_work_iter():
     """Test fetching multiple works from OpenAlex matching a search query."""
     client = OpenAlexClient()
     search = "vector space"  # Example search term
-    filter_str = "has_doi:true,publication_year:>2025,cited_by_count:>50"
-    select = "id,doi,title"
+    filter_str = "has_doi:true,publication_year:>2024,cited_by_count:>50"
+    select = "id,doi,title,publication_year"
     works = client.fetch_works_iter(search=search, filter_str=filter_str, select=select)
+    works = list(works)
     assert works
     for work in works:
         assert "id" in work
         assert "doi" in work
         assert "title" in work
-        assert "publication_year" not in work  # Not selected
+        assert work["publication_year"] > 2024
+        assert "cited_by_count" not in work
 
 
 def test_openalex_fetch_work_by_id():
