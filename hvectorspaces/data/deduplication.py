@@ -1,4 +1,4 @@
-from hvectorspaces.data.preprocessing import return_fields_normalize
+from hvectorspaces.data.preprocessing import normalize_work_fields_inplace
 
 
 class Deduper:
@@ -7,7 +7,7 @@ class Deduper:
         self.kept = []
 
     def add(self, w):
-        return_fields_normalize(w)
+        normalize_work_fields_inplace(w)
         d, oid, tn = w["doi"], w["oa_id"], w["title"]
         if d and d in self.by_doi:
             return False

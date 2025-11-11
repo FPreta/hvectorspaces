@@ -57,7 +57,7 @@ def normalize_primary_topic(work):
     return work
 
 
-def return_fields_normalize(w):
+def normalize_work_fields_inplace(w):
     w["oa_id"] = oa_id(w)
     w["doi"] = (w.get("doi") or "").strip().lower() or None
     w["title"] = normalize_title(w.get("title"))

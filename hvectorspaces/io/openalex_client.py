@@ -113,7 +113,6 @@ class OpenAlexClient:
         ids = [i.split("/")[-1] for i in id_list]
         for chunk in chunked(ids, batch_size):
             params = {"filter": "ids.openalex:" + "|".join(chunk), "per-page": batch_size}
-            print(params)
             if select:
                 params["select"] = select
             data = self._get(f"{OPENALEX_BASE}/works", params)
