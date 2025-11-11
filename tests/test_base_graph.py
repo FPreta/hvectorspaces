@@ -70,8 +70,8 @@ def test_expand_batched():
 
 
 def test_expand_batched_2_hops():
+    """Test expanding the seed set with citing works over two hops."""
     client = OpenAlexClient()
-    seed_works = build_seed(
         openalex_client=client,
         search_term="vector space",
         min_citations=100,
