@@ -45,7 +45,7 @@ def normalize_abstract(work):
 
 
 def normalize_primary_topic(work):
-    if work.get("primary_topic", {}) is None:
+    if work.get("primary_topic") is None:
         work["domain"] = None
         work["field"] = None
         work["topic"] = None
