@@ -26,8 +26,11 @@ def normalize_abstract(work):
     if not inv or not isinstance(inv, dict):
         return None
 
-    # Get the highest position index
-    max_index = max(pos for positions in inv.values() for pos in positions)
+    # Get all position indices
+    all_positions = [pos for positions in inv.values() for pos in positions]
+    if not all_positions:
+        return None
+    max_index = max(all_positions)
     # Initialize empty list
     abstract_words = [""] * (max_index + 1)
 
@@ -42,7 +45,7 @@ def normalize_abstract(work):
 
 
 def normalize_primary_topic(work):
-    if work.get("primary_topic", {}) is None:
+    if work.get("primary_topic") is None:
         work["domain"] = None
         work["field"] = None
         work["topic"] = None

@@ -3,7 +3,7 @@ name = "hvectorspaces"
 version = "0.1.0"
 description = "An academic project to study citation graphs for vector space related research."
 authors = [
-    { name = "Francesco Preta", email = "francesco.preta@gmail.com" }
+    { name = "Francesco Preta", email = "francesco.preta@gmail.com" },
     { name = "Mikael Brunila", email = "mikael.brunila@gmail.com"}
 ]
 readme = "README.md"
