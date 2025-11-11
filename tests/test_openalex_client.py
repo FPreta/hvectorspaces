@@ -5,7 +5,7 @@ from hvectorspaces.io.openalex_client import OpenAlexClient
 
 
 def test_openalex_fetch_work_iter():
-    """Test fetching a single work from OpenAlex."""
+    """Test fetching multiple works from OpenAlex matching a search query."""
     client = OpenAlexClient()
     search = "vector space"  # Example OpenAlex work ID
     filter_str = "has_doi:true,publication_year:>2025,cited_by_count:>50"
