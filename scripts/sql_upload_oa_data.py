@@ -14,7 +14,7 @@ if __name__ == "__main__":
         "abstract_inverted_index",
         "referenced_works",
         "primary_topic",
-        "cited_by_count",
+
     ]
     sql_fields = {
         "oa_id": "STRING",

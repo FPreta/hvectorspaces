@@ -35,7 +35,8 @@ def test_cockroach_tables():
         # Drop table
         client.drop_table(table_name)
         with pytest.raises(psycopg2.Error):
-            cur.execute(f"SELECT to_regclass('{table_name}');")
+            with client.conn.cursor() as cur:
+                cur.execute(f"SELECT to_regclass('{table_name}');")
 
 
 def test_cockroach_upload():
