@@ -61,6 +61,23 @@ def normalize_primary_topic(work):
 
 
 def normalize_work_fields_inplace(w):
+    """Normalizes key fields of a work in-place.
+    Adds/updates the following fields:
+        - oa_id
+        - doi
+        - title
+        - abstract
+        - referenced_works (list of oa_ids)
+        - domain
+        - field
+        - topic
+    Removes the following unused fields:
+        - abstract_inverted_index
+        - primary_topic
+
+    Args:
+        w (dict): A work record from OpenAlex API.
+    """
     w["oa_id"] = oa_id(w)
     w["doi"] = (w.get("doi") or "").strip().lower() or None
     w["title"] = normalize_title(w.get("title"))
