@@ -1,0 +1,32 @@
+[project]
+name = "hvectorspaces"
+version = "0.1.0"
+description = "An academic project to study citation graphs for vector space related research."
+authors = [
+    { name = "Francesco Preta", email = "francesco.preta@gmail.com" },
+    { name = "Mikael Brunila", email = "mikael.brunila@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+    "aiohttp>=3.13.2",
+    "tqdm>=4.67.1",
+    "python-dotenv>=1.2.1",
+    "psycopg2-binary>=2.9.11",
+    "requests>=2.32.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0"
+]
+
+[tool.pytest.ini_options]
+addopts = "-v"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

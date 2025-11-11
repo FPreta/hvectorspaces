@@ -1,0 +1,10 @@
+.env
+__pycache__/
+venv/
+.DS_Store
+.ipynb_checkpoints/
+*.pyc
+
+# draft scripts
+count_works.py
+download_from_openalex.py
