@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 DECADES = [(y, y + 9) for y in range(1920, 2030, 10)]
 BATCH_SIZE = 2000  # safe for CockroachDB Serverless
 
+logging.basicConfig(level=logging.ERROR)
 load_dotenv()
 
 
@@ -59,7 +60,8 @@ def update_decade(client, decade_start, decade_end):
         batch = ids[i : i + BATCH_SIZE]
 
         def apply_update(cur):
-            cur.execute("""
+            cur.execute(
+                """
                 UPDATE openalex_vector_spaces AS o
                 SET in_decade_references = COALESCE(refs.ref_array, ARRAY[]::STRING[])
                 FROM (
@@ -77,7 +79,9 @@ def update_decade(client, decade_start, decade_end):
                     GROUP BY o.oa_id
                 ) AS refs
                 WHERE o.oa_id = refs.oa_id
-            """, (decade_start, decade_end, batch))
+            """,
+                (decade_start, decade_end, batch),
+            )
 
         try:
             run_with_retries(client, apply_update)
