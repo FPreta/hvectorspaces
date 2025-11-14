@@ -63,7 +63,7 @@ def update_decade(client, decade_start, decade_end):
                         FROM unnest(o.referenced_works) AS ref
                         JOIN openalex_vector_spaces AS o2 ON o2.oa_id = ref
                         WHERE o2.publication_year BETWEEN %s AND %s
-                    )
+                    ) AS subq
                 )
                 WHERE oa_id = ANY(%s)
             """), (decade_start, decade_end, batch))
