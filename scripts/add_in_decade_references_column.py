@@ -1,7 +1,5 @@
 import logging
-import time
 from tqdm import tqdm
-from psycopg2 import OperationalError
 from hvectorspaces.io.cockroach_client import CockroachClient
 
 from dotenv import load_dotenv
@@ -14,25 +12,6 @@ BATCH_SIZE = 2000  # safe for CockroachDB Serverless
 
 logging.basicConfig(level=logging.ERROR)
 load_dotenv()
-
-
-def run_with_retries(client, fn, max_retries=5):
-    """
-    CockroachDB uses SERIALIZABLE isolation by default,
-    so retries on TransactionRestart errors are required.
-    """
-    for attempt in range(max_retries):
-        try:
-            return client.run_transaction(fn)
-        except OperationalError as e:
-            msg = str(e)
-            if "restart transaction" in msg.lower() or "retry txn" in msg.lower():
-                wait = 0.5 * (attempt + 1)
-                print(f"⚠️ Transaction restart required. Retrying in {wait:.1f}s...")
-                time.sleep(wait)
-                continue
-            raise
-    raise RuntimeError("Exceeded max retries")
 
 
 def update_decade(client, decade_start, decade_end):
@@ -50,7 +29,7 @@ def update_decade(client, decade_start, decade_end):
         )
         return cur.fetchall()
 
-    ids = run_with_retries(client, fetch_ids)
+    ids = client.run_transaction(fetch_ids, max_retries=5)
     ids = [row[0] for row in ids]
 
     print(f"   → Found {len(ids)} works in this decade.")
@@ -67,7 +46,7 @@ def update_decade(client, decade_start, decade_end):
                 FROM (
                     SELECT
                         o.oa_id,
-                        array_agg(ref) AS ref_array
+                        array_agg(ref) FILTER (WHERE ref IS NOT NULL) AS ref_array
                     FROM openalex_vector_spaces AS o
                     LEFT JOIN LATERAL (
                         SELECT ref
@@ -78,13 +57,13 @@ def update_decade(client, decade_start, decade_end):
                     WHERE o.oa_id = ANY(%s)
                     GROUP BY o.oa_id
                 ) AS refs
-                WHERE o.oa_id = refs.oa_id
+                WHERE o.oa_id = refs.oa_id;
             """,
                 (decade_start, decade_end, batch),
             )
 
         try:
-            run_with_retries(client, apply_update)
+            client.run_transaction(apply_update, max_retries=5)
         except Exception as e:
             logging.error(
                 f"❌ Failed on batch {i//BATCH_SIZE + 1} (IDs {i} to {min(i+BATCH_SIZE, len(ids))})"
@@ -95,22 +74,22 @@ def update_decade(client, decade_start, decade_end):
 
 
 def main():
-    client = CockroachClient()
+    with CockroachClient() as client:
 
-    print("\n🔧 Ensuring column exists...")
-    client.run_transaction(
-        lambda cur: cur.execute(
-            """
-        ALTER TABLE openalex_vector_spaces
-        ADD COLUMN IF NOT EXISTS in_decade_references STRING[] DEFAULT ARRAY[]::STRING[];
-    """
+        print("\n🔧 Ensuring column exists...")
+        client.run_transaction(
+            lambda cur: cur.execute(
+                """
+            ALTER TABLE openalex_vector_spaces
+            ADD COLUMN IF NOT EXISTS in_decade_references STRING[] DEFAULT ARRAY[]::STRING[];
+        """
+            )
         )
-    )
 
-    for decade_start, decade_end in DECADES:
-        update_decade(client, decade_start, decade_end)
+        for decade_start, decade_end in DECADES:
+            update_decade(client, decade_start, decade_end)
 
-    print("\n🎉 All decades completed.")
+        print("\n🎉 All decades completed.")
 
 
 if __name__ == "__main__":
