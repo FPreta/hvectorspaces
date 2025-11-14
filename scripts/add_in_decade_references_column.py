@@ -59,24 +59,25 @@ def update_decade(client, decade_start, decade_end):
         batch = ids[i : i + BATCH_SIZE]
 
         def apply_update(cur):
-            cur.execute(
-                """
+            cur.execute("""
                 UPDATE openalex_vector_spaces AS o
-                SET in_decade_references = COALESCE(
-                (
-                    SELECT array_agg(ref)
-                    FROM (
+                SET in_decade_references = COALESCE(refs.ref_array, ARRAY[]::STRING[])
+                FROM (
+                    SELECT
+                        o.oa_id,
+                        array_agg(ref) AS ref_array
+                    FROM openalex_vector_spaces AS o
+                    LEFT JOIN LATERAL (
                         SELECT ref
                         FROM unnest(o.referenced_works) AS ref
                         JOIN openalex_vector_spaces AS o2 ON o2.oa_id = ref
                         WHERE o2.publication_year BETWEEN %s AND %s
-                        ) AS subq
-                    ),
-                    ARRAY[]::STRING[]
-                )
-                WHERE oa_id = ANY(%s)
-            """
-            ), (decade_start, decade_end, batch)
+                    ) AS subq ON TRUE
+                    WHERE o.oa_id = ANY(%s)
+                    GROUP BY o.oa_id
+                ) AS refs
+                WHERE o.oa_id = refs.oa_id
+            """, (decade_start, decade_end, batch))
 
         try:
             run_with_retries(client, apply_update)
