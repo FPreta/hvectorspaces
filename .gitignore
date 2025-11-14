@@ -8,3 +8,11 @@ venv/
 # draft scripts
 count_works.py
 download_from_openalex.py
+
+build/
+egg-info/
+dependency_links.txt
+PKG-info
+requires.txt
+SOURCES.txt
+top_level.txt

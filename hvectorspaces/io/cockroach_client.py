@@ -67,16 +67,26 @@ class CockroachClient:
     # ---------------------------------------------------
     # Schema management
     # ---------------------------------------------------
-    def generate_table(self, table_name: str, fields: dict, pk: str = "id"):
+    def generate_table(self, table_name: str, fields: dict, pk="id"):
         """Create table if not exists with given fields and types."""
+        # Ensure pk is a tuple/list, even if user passes a string
+
         cols = []
         for name, ftype in fields.items():
             cols.append(sql.SQL("{} {}").format(sql.Identifier(name), sql.SQL(ftype)))
 
-        # Only add a separate PRIMARY KEY constraint if not already in field definition
-        pk_type = fields.get(pk, "").upper()
-        if "PRIMARY KEY" not in pk_type:
-            pk_constraint = sql.SQL(", PRIMARY KEY ({})").format(sql.Identifier(pk))
+        # Detect if any field explicitly defines its own PRIMARY KEY
+        pk_already_defined = any(
+            "primary key" in ftype.lower() for ftype in fields.values()
+        )
+        # Build composite PK clause (if pk exists in fields)
+        if isinstance(pk, str):
+            pk = (pk,)
+
+        if pk and not pk_already_defined:
+            pk_constraint = sql.SQL(", PRIMARY KEY ({})").format(
+                sql.SQL(", ").join(sql.Identifier(c) for c in pk)
+            )
         else:
             pk_constraint = sql.SQL("")
 
