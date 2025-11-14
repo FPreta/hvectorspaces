@@ -50,7 +50,7 @@ def update_decade(client, decade_start, decade_end):
         )
         return cur.fetchall()
 
-    ids = run_with_retries(client, lambda cur: fetch_ids(cur))
+    ids = run_with_retries(client, fetch_ids)
     ids = [row[0] for row in ids]
 
     print(f"   → Found {len(ids)} works in this decade.")
