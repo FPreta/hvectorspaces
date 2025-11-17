@@ -2,6 +2,7 @@ import json
 import os
 import time
 from tqdm import tqdm
+from typing import Optional
 
 from dotenv import load_dotenv
 import psycopg2
@@ -188,3 +189,29 @@ class CockroachClient:
             cur.execute(drop_query)
         self.conn.commit()
         print(f"✅ Dropped table '{table_name}'{' (CASCADE)' if cascade else ''}.")
+
+    def fetch_per_decade_data(
+        self, decade_start: int, additional_fields: Optional[list] = None
+    ):
+        if decade_start % 10 != 0:
+            raise ValueError("decade_start must be a multiple of 10.")
+        decade_end = decade_start + 9
+
+        # Build field list safely
+        fields = [sql.Identifier("oa_id"), sql.Identifier("in_decade_references")]
+        if additional_fields:
+            fields.extend(sql.Identifier(f) for f in additional_fields)
+
+        query = sql.SQL(
+            """
+            SELECT {fields}
+            FROM openalex_vector_spaces
+            WHERE publication_year BETWEEN %s AND %s
+        """
+        ).format(fields=sql.SQL(", ").join(fields))
+
+        def _fetch(cur):
+            cur.execute(query, (decade_start, decade_end))
+            return cur.fetchall()
+
+        return self.run_transaction(_fetch)
