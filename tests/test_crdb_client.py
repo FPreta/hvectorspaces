@@ -64,6 +64,7 @@ def test_cockroach_upload():
 
 
 def test_fetch_in_decade_references():
+    """Test fetching works from a specific decade with their in-decade references."""
     decade_start = 1970
     with CockroachClient() as client:
         results = client.fetch_per_decade_data(
@@ -79,7 +80,7 @@ def test_fetch_in_decade_references():
             assert all(ref in oa_ids for ref in in_decade_references)
             assert (
                 set(referenced_works)
-                .intersection(set(in_decade_references))
-                .issubset(oa_ids)
+                .intersection(oa_ids)
+                .issubset(set(in_decade_references))
             )
             assert 1970 <= publication_year <= 1979

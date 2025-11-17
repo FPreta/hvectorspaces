@@ -193,6 +193,19 @@ class CockroachClient:
     def fetch_per_decade_data(
         self, decade_start: int, additional_fields: Optional[list] = None
     ):
+        """
+        Fetch works from a specific decade with their in-decade references.
+
+        Args:
+            decade_start (int): The starting year of the decade (must be a multiple of 10).
+            additional_fields (Optional[list]): Additional field names to include in the query.
+
+        Returns:
+            list: Query results with oa_id, in_decade_references, and any additional fields.
+
+        Raises:
+            ValueError: If decade_start is not a multiple of 10.
+        """
         if decade_start % 10 != 0:
             raise ValueError("decade_start must be a multiple of 10.")
         decade_end = decade_start + 9
