@@ -18,13 +18,13 @@ The most important module in the `hvectorspaces` package is the `io` module, whi
 To use the `io` module, you can create an instance of the `CockroachDBClient` class and use its methods to interact with the database. For example, to download the data and generate a map from OpenAlex work ID to the list of IDs of cited works, you can use the following code:
 
 ```python
-from hvectorspaces.io import CockroachDBClient
+from hvectorspaces.io import CockroachClient
 
 id_to_cited_ids = {}
-with CockroachDBClient() as client:
+with CockroachClient() as client:
     citation_map = client.fetch_per_decade_data(1980)
-    for record in citation_map:
-        id_to_cited_ids[record['oa_id']] = record['in_decade_references']
+    for oa_id, refs in citation_map:
+        id_to_cited_ids[oa_id] = refs
 ```
 
 The `CockroachDBClient.fetch_per_decade_data` method can also take a list of column names as an optional argument to specify which additional columns to retrieve from the database.
@@ -32,9 +32,9 @@ The `CockroachDBClient.fetch_per_decade_data` method can also take a list of col
 In order to launch a generic SQL query against the Cockroach DB, you can use the `CockroachDBClient.execute_query` method. For example:
 
 ```python
-from hvectorspaces.io import CockroachDBClient
-with CockroachDBClient() as client:
-    result = client.execute_query("SELECT * FROM openalex_vector_spaces LIMIT 10;")
+from hvectorspaces.io import CockroachClient
+with CockroachClient() as client:
+    result = client.execute_sql("SELECT * FROM openalex_vector_spaces LIMIT 10;")
     for row in result:
         print(row)
 ```

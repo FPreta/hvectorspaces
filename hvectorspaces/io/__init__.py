@@ -1,1 +1,1 @@
-from .cockroach_client import CockroachClient # noqa
+from .cockroach_client import CockroachClient  # noqa
