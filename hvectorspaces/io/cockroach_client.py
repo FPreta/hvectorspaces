@@ -228,3 +228,18 @@ class CockroachClient:
             return cur.fetchall()
 
         return self.run_transaction(_fetch)
+
+    def execute_sql(self, query: str, params=None):
+        """
+        Execute a generic SQL query.
+
+        Args:
+            query (str): Raw SQL query as a string.
+            params (tuple | list | dict | None): Parameters to bind.
+        """
+
+        def _exec(cur):
+            cur.execute(query, params)
+            return cur.fetchall()
+
+        return self.run_transaction(_exec)
