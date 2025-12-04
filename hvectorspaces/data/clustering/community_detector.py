@@ -1,5 +1,6 @@
 from collections import defaultdict
 from enum import Enum
+from typing import Literal
 
 import graph_tool.all as gt
 import igraph as ig
@@ -17,7 +18,11 @@ class ClusteringMethod(Enum):
 class CommunityDetector:
 
     @staticmethod
-    def run_leiden_directed(edges: list[tuple[str, str]], weights=None, directed=True):
+    def run_leiden(
+        edges: list[tuple[str, str]],
+        weights: list[float] | None = None,
+        directed: bool = True,
+    ) -> dict[int, list[str]]:
         """Leiden method:
         Given a list of nodes, and a list of directed edges (tuples),
         the Leiden algorithm works in multiple phases:
@@ -37,6 +42,14 @@ class CommunityDetector:
         The process is repeated until no further modularity improvement is possible after iterating after all three phases.
 
         Louvain is similar to Leiden, but without phase 2.
+
+        Args:
+            edges (list[tuple[str, str]]): List of directed edges (tuples)
+            weights (list[float], optional): List of edge weights. Defaults to None.
+            directed (bool, optional): Whether the graph is directed. Defaults to True.
+
+        Returns:
+            dict[int, list[str]]: Mapping of community ID to list of node IDs
         """
         # Build igraph directed graph
         g = ig.Graph(directed=directed)
@@ -68,7 +81,11 @@ class CommunityDetector:
         return communities
 
     @staticmethod
-    def run_infomap_directed(edges, weights=None, directed=True):
+    def run_infomap(
+        edges: list[tuple[str, str]],
+        weights: list[float] | None = None,
+        directed: bool = True,
+    ):
         """Infomap method:
         Given a list of nodes, and a list of directed edges (tuples),
         the Infomap algorithm works in multiple phases:
@@ -88,6 +105,14 @@ class CommunityDetector:
         The process is repeated until no further map-equation improvement is possible after iterating after phases 1 and 2.
 
         Infomap is similar to Louvain, but with a different objective function.
+
+        Args:
+            edges (list[tuple[str, str]]): List of directed edges (tuples)
+            weights (list[float], optional): List of edge weights. Defaults to None.
+            directed (bool, optional): Whether the graph is directed. Defaults to True.
+
+        Returns:
+            dict[int, list[str]]: Mapping of community ID to list of node IDs
         """
         # Map nodes to integer IDs
         nodes = sorted({u for u, v in edges} | {v for u, v in edges})
@@ -112,7 +137,9 @@ class CommunityDetector:
         return communities
 
     @staticmethod
-    def run_sbm_directed(edges):
+    def run_sbm(
+        edges: list[tuple[str, str]], directed: bool = True
+    ) -> dict[int, list[str]]:
         """Stochastic Block Model (SBM) method:
         Given a list of nodes, and a list of directed edges (tuples),
         the SBM algorithm works by fitting a probabilistic model to the observed network structure.
@@ -128,13 +155,21 @@ class CommunityDetector:
             The edges are weighted by the sum of the weights of the edges between nodes in the original blocks.
             Then we repeat the process of Phase 1 on this aggregated graph.
         The process is repeated until no further description length improvement is possible after iterating after phases 1 and 2.
+
+        Args:
+            edges (list[tuple[str, str]]): List of directed edges (tuples)
+            directed (bool, optional): Whether the graph is directed. Defaults to True.
+
+        Returns:
+            dict[int, list[str]]: Mapping of community ID to list of node IDs
+
         """
         # Collect nodes
         nodes = sorted({u for u, v in edges} | {v for u, v in edges})
         idx = {n: i for i, n in enumerate(nodes)}
 
         # Build directed graph
-        g = gt.Graph(directed=True)
+        g = gt.Graph(directed=directed)
         g.add_vertex(len(nodes))
         g.add_edge_list((idx[u], idx[v]) for u, v in edges)
 
@@ -155,17 +190,34 @@ class CommunityDetector:
         return communities
 
     @staticmethod
-    def detect(graph: dict[str, list[str]], method: str) -> dict[int, list[str]]:
+    def detect(
+        graph: dict[str, list[str]],
+        method: Literal["leiden", "infomap", "sbm"],
+        directed=True,
+    ) -> dict[int, list[str]]:
+        """Detect communities in a graph using the specified method.
+
+        Args:
+            graph (dict[str, list[str]]): Input graph as an adjacency list
+            method (literal): Clustering method to use. One of ('leiden', 'infomap', 'sbm')
+            directed (bool, optional): Whether the graph is directed. Defaults to True.
+
+        Raises:
+            ValueError: If an unsupported clustering method is provided.
+
+        Returns:
+            dict[int, list[str]]: Mapping of community ID to list of node IDs
+        """
         method = ClusteringMethod(method.lower())
         edges = []
         for u, neighbors in graph.items():
             for v in neighbors:
                 edges.append((u, v))
         if method == ClusteringMethod.LEIDEN:
-            return CommunityDetector.run_leiden_directed(edges)
+            return CommunityDetector.run_leiden(edges, directed=directed)
         elif method == ClusteringMethod.INFOMAP:
-            return CommunityDetector.run_infomap_directed(edges)
+            return CommunityDetector.run_infomap(edges, directed=directed)
         elif method == ClusteringMethod.SBM:
-            return CommunityDetector.run_sbm_directed(edges)
+            return CommunityDetector.run_sbm(edges, directed=directed)
         else:
             raise ValueError(f"Unsupported clustering method: {method}")
