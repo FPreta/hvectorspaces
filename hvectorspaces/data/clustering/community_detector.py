@@ -1,3 +1,4 @@
+from collections import defaultdict
 from enum import Enum
 
 import graph_tool.all as gt
@@ -40,49 +41,65 @@ class CommunityDetector:
             weights=g.es["weight"] if weights is not None else None,
         )
 
-        # Convert result to {node: community}
-        community = {nodes[i]: c for i, c in enumerate(partition.membership)}
-        return community, partition
+        # Convert result to {community: nodes}
+        communities = defaultdict(list)
+        for node, comm_id in zip(nodes, partition.membership):
+            communities[comm_id].append(node)
+        return communities
 
     @staticmethod
     def run_infomap_directed(edges, weights=None, directed=True):
-        init_string = "--directed --two-level" if directed else "--two-level"
+        # Map nodes to integer IDs
+        nodes = sorted({u for u, v in edges} | {v for u, v in edges})
+        idx = {n: i for i, n in enumerate(nodes)}
 
-        im = Infomap(init_string)
+        im = Infomap("--directed --two-level" if directed else "--two-level")
 
         for i, (u, v) in enumerate(edges):
-            w = weights[i] if weights is not None else 1.0
-            im.add_link(u, v, w)
+            iu = idx[u]
+            iv = idx[v]
+            w = float(weights[i]) if weights is not None else 1.0
+            im.addLink(iu, iv, w)  # MUST be integers
 
         im.run()
 
-        # node_id → module_id mapping
-        communities = {n.node_id: n.module_id for n in im.nodes}
-        return communities, im
+        # communities is a dict mapping module_id to list of node_ids
+        communities = defaultdict(list)
+
+        for node in im.nodes:
+            communities[node.module_id].append(node.node_id)
+
+        return communities
 
     @staticmethod
     def run_sbm_directed(edges):
-        # Map nodes to contiguous IDs
+        # Collect nodes
         nodes = sorted({u for u, v in edges} | {v for u, v in edges})
         idx = {n: i for i, n in enumerate(nodes)}
 
         # Build directed graph
         g = gt.Graph(directed=True)
         g.add_vertex(len(nodes))
-
-        # Add edges
         g.add_edge_list((idx[u], idx[v]) for u, v in edges)
 
-        # Degree-corrected SBM with automatic model selection
-        state = gt.minimize_blockmodel_dl(g, deg_corr=True)
+        # MDL minimization with degree correction
+        state = gt.minimize_blockmodel_dl(
+            g, state_args=dict(deg_corr=True)  # ← degree-corrected SBM
+        )
 
-        # Extract block assignments
+        # Extract final block assignment
         blocks = state.get_blocks()
-        communities = {nodes[v]: int(blocks[v]) for v in range(len(nodes))}
-        return communities, state
+
+        # communities is a dict mapping block_id to list of node_ids
+        communities = defaultdict(list)
+        for v in g.vertices():
+            block_id = blocks[v]
+            node_id = nodes[int(v)]
+            communities[block_id].append(node_id)
+        return communities
 
     @staticmethod
-    def detect(graph: dict[str, list[str]], method: str):
+    def detect(graph: dict[str, list[str]], method: str) -> tuple[dict, object]:
         method = ClusteringMethod(method.lower())
         edges = []
         for u, neighbors in graph.items():
