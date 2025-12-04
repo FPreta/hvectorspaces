@@ -75,4 +75,4 @@ def test_sbm_community_detection():
         all_nodes = all_nodes.union(set(val))
 
     assert len(all_nodes) == len(graph.keys())  # All nodes pertain to a community
-    assert len(communities) == 1  # One communities expected (small graph)
+    assert len(communities) == 1  # One community expected (small graph)

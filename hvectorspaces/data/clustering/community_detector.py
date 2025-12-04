@@ -107,7 +107,7 @@ class CommunityDetector:
         communities = defaultdict(list)
 
         for node in im.nodes:
-            communities[node.module_id].append(node.node_id)
+            communities[node.module_id].append(nodes[node.node_id])
 
         return communities
 
@@ -155,7 +155,7 @@ class CommunityDetector:
         return communities
 
     @staticmethod
-    def detect(graph: dict[str, list[str]], method: str) -> tuple[dict, object]:
+    def detect(graph: dict[str, list[str]], method: str) -> dict[int, list[str]]:
         method = ClusteringMethod(method.lower())
         edges = []
         for u, neighbors in graph.items():
