@@ -18,6 +18,26 @@ class CommunityDetector:
 
     @staticmethod
     def run_leiden_directed(edges: list[tuple[str, str]], weights=None, directed=True):
+        """Leiden method:
+        Given a list of nodes, and a list of directed edges (tuples),
+        the Leiden algorithm works in multiple phases:
+        Phase 1: starting from a community per node, each node is moved to the community
+            of one of its neighbors if this increases the overall modularity. The modularity
+            rewards communities whose connectivity is higher than expected in a random graph with the
+            same degree distribution.
+        Phase 2: For each community found in Phase 1, a refinement step is applied.
+            Inside each community, we again start from single-node subcommunities
+            and repeat the local moving procedure, but restricted to the nodes of that
+            community. This may split the original community into multiple
+            better-connected subcommunities. The old community is replaced by these
+            refined subcommunities.
+        Phase 3: the graph is aggregated, where each community found in Phase 2 is represented as a single node.
+            The edges are weighted by the sum of the weights of the edges between nodes in the original communities.
+            Then we repeat the process of Phase 1 on this aggregated graph.
+        The process is repeated until no further modularity improvement is possible after iterating after all three phases.
+
+        Louvain is similar to Leiden, but without phase 2.
+        """
         # Build igraph directed graph
         g = ig.Graph(directed=directed)
 
@@ -49,6 +69,26 @@ class CommunityDetector:
 
     @staticmethod
     def run_infomap_directed(edges, weights=None, directed=True):
+        """Infomap method:
+        Given a list of nodes, and a list of directed edges (tuples),
+        the Infomap algorithm works in multiple phases:
+        Phase 0: define a map equation to minimize the expected description length of a random walk. In practice,
+            for any partition of the network into communities, the map equation calculates the entropy
+            of the information required to describe a random walker exiting a community plus the entropy
+            of the information required to describe its position within a community. It's
+            L = qH(Q) + ∑ p_i H(P_i), where q is the probability of exiting communities,
+            H(Q) is the entropy of the codebook for inter-community movements,
+            p_i is the probability of being in community i, and H(P_i) is the entropy of the codebook for intra-community movements.
+        Phase 1: starting from a community per node, each node is moved to the community
+            of one of its neighbors if this decreases the value of the map equation. This is repeated
+            until all nodes are considered and no further improvement is possible.
+        Phase 2: the graph is aggregated, where each community found in Phase 1 is represented as a single node.
+            The edges are weighted by the sum of the weights of the edges between nodes in the original communities.
+            Then we repeat the process of Phase 1 on this aggregated graph.
+        The process is repeated until no further map-equation improvement is possible after iterating after phases 1 and 2.
+
+        Infomap is similar to Louvain, but with a different objective function.
+        """
         # Map nodes to integer IDs
         nodes = sorted({u for u, v in edges} | {v for u, v in edges})
         idx = {n: i for i, n in enumerate(nodes)}
@@ -73,6 +113,22 @@ class CommunityDetector:
 
     @staticmethod
     def run_sbm_directed(edges):
+        """Stochastic Block Model (SBM) method:
+        Given a list of nodes, and a list of directed edges (tuples),
+        the SBM algorithm works by fitting a probabilistic model to the observed network structure.
+        The aim is NOT to detect cliques, but rather to recreate at a higher level the type of structures
+        observed in the network. For example, if there are five pairs of nodes that are only connected to
+        each other, the SBM will group them into two blocks with only one link between them.
+        It works in multiple phases:
+        Phase 0: define an initial state in which each node is assigned to a block (community). Define
+            an objective function which penalizes model complexity.
+        Phase 1: iteratively reassign nodes to different blocks to minimize the description length
+            of the model given the block structures.
+        Phase 2: optionally, the graph is aggregated, where each block found in Phase 1 is represented as a single node.
+            The edges are weighted by the sum of the weights of the edges between nodes in the original blocks.
+            Then we repeat the process of Phase 1 on this aggregated graph.
+        The process is repeated until no further description length improvement is possible after iterating after phases 1 and 2.
+        """
         # Collect nodes
         nodes = sorted({u for u, v in edges} | {v for u, v in edges})
         idx = {n: i for i, n in enumerate(nodes)}
