@@ -11,6 +11,7 @@ download_from_openalex.py
 
 build/
 egg-info/
+*.egg-info/
 dependency_links.txt
 PKG-info
 requires.txt
