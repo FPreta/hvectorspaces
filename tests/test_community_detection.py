@@ -23,7 +23,10 @@ def sample_graph():
     [
         ("leiden", 2),
         ("infomap", 2),
-        ("sbm", 1),  # SBM may merge small clusters
+        # SBM uses statistical inference and tends to favor larger,
+        # more statistically significant communities; it may merge
+        # smaller clusters that don't have enough edges for distinct blocks.
+        ("sbm", 1),
     ],
 )
 def test_community_detection(sample_graph, method, expected_communities):
