@@ -1,8 +1,9 @@
 import logging
-from tqdm import tqdm
-from hvectorspaces.io.cockroach_client import CockroachClient
 
 from dotenv import load_dotenv
+from tqdm import tqdm
+
+from hvectorspaces.io.cockroach_client import CockroachClient
 
 # -------------------------
 # FIXED DECADE RANGES
@@ -36,7 +37,7 @@ def update_decade(client, decade_start, decade_end):
 
     # Step 2: chunk the updates
     for i in tqdm(range(0, len(ids), BATCH_SIZE), desc=f"Updating {decade_start}s"):
-        batch = ids[i : i + BATCH_SIZE]
+        batch = ids[i : i + BATCH_SIZE]  # noqa
 
         def apply_update(cur):
             cur.execute(
@@ -66,7 +67,7 @@ def update_decade(client, decade_start, decade_end):
             client.run_transaction(apply_update, max_retries=5)
         except Exception as e:
             logging.error(
-                f"❌ Failed on batch {i//BATCH_SIZE + 1} (IDs {i} to {min(i+BATCH_SIZE, len(ids))})"
+                f"❌ Failed on batch {i // BATCH_SIZE + 1} (IDs {i} to {min(i + BATCH_SIZE, len(ids))})"
             )
             raise e
 
@@ -75,7 +76,6 @@ def update_decade(client, decade_start, decade_end):
 
 def main():
     with CockroachClient() as client:
-
         print("\n🔧 Ensuring column exists...")
         client.run_transaction(
             lambda cur: cur.execute(
