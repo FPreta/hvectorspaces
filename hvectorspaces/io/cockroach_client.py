@@ -317,7 +317,6 @@ class CockroachClient:
             [] or ["W1","W2"]
         """
 
-        import json
 
         # --- Step 1: Detect column names and array columns ---
         with self.conn.cursor() as cur:
