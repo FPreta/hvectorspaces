@@ -8,7 +8,7 @@ To install the required packages, run the following command in your python envir
 pip install .[dev]
 ```
 
-## PostgreSQL Setup
+## PostgreSQL Setup (skip if you already have a local PostgreSQL DB)
 This document explains how to set up a **local PostgreSQL database** that mirrors the data we previously hosted on **CockroachDB**.
 
 The local DB contains two tables:
@@ -103,7 +103,7 @@ CREATE DATABASE hvectorspaces;
 
 ```
 
-## 4. Configure environment variables
+### 4. Configure environment variables
 
 The Python clients expect standard PostgreSQL env vars. Create a .env file in the project root or modify the existing one with the following variables:
 
