@@ -3,13 +3,13 @@ import logging
 from dotenv import load_dotenv
 from tqdm import tqdm
 
-from hvectorspaces.io.cockroach_client import CockroachClient
+from hvectorspaces.io.pg_client import PostgresClient
 
 # -------------------------
 # FIXED DECADE RANGES
 # -------------------------
 DECADES = [(y, y + 9) for y in range(1920, 2030, 10)]
-BATCH_SIZE = 2000  # safe for CockroachDB Serverless
+BATCH_SIZE = 2000  # safe for PostgreSQL
 
 logging.basicConfig(level=logging.ERROR)
 load_dotenv()
@@ -30,7 +30,7 @@ def update_decade(client, decade_start, decade_end):
         )
         return cur.fetchall()
 
-    ids = client.run_transaction(fetch_ids, max_retries=5)
+    ids = client.run_transaction(fetch_ids)
     ids = [row[0] for row in ids]
 
     print(f"   → Found {len(ids)} works in this decade.")
@@ -43,7 +43,7 @@ def update_decade(client, decade_start, decade_end):
             cur.execute(
                 """
                 UPDATE openalex_vector_spaces AS o
-                SET in_decade_references = COALESCE(refs.ref_array, ARRAY[]::STRING[])
+                SET in_decade_references = COALESCE(refs.ref_array, ARRAY[]::TEXT[])
                 FROM (
                     SELECT
                         o.oa_id,
@@ -64,7 +64,7 @@ def update_decade(client, decade_start, decade_end):
             )
 
         try:
-            client.run_transaction(apply_update, max_retries=5)
+            client.run_transaction(apply_update)
         except Exception as e:
             logging.error(
                 f"❌ Failed on batch {i // BATCH_SIZE + 1} (IDs {i} to {min(i + BATCH_SIZE, len(ids))})"
@@ -75,13 +75,13 @@ def update_decade(client, decade_start, decade_end):
 
 
 def main():
-    with CockroachClient() as client:
+    with PostgresClient() as client:
         print("\n🔧 Ensuring column exists...")
         client.run_transaction(
             lambda cur: cur.execute(
                 """
             ALTER TABLE openalex_vector_spaces
-            ADD COLUMN IF NOT EXISTS in_decade_references STRING[] DEFAULT ARRAY[]::STRING[];
+            ADD COLUMN IF NOT EXISTS in_decade_references TEXT[] DEFAULT ARRAY[]::TEXT[];
         """
             )
         )

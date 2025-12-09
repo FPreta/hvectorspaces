@@ -1,8 +1,8 @@
 import asyncio
 
 from hvectorspaces.data.base_graph import build_seed, expand_batched
+from hvectorspaces.io import PostgresClient
 from hvectorspaces.io.openalex_client import OpenAlexClient
-from hvectorspaces.io.cockroach_client import CockroachClient
 
 if __name__ == "__main__":
     oa_fields = [
@@ -16,13 +16,13 @@ if __name__ == "__main__":
         "primary_topic",
     ]
     sql_fields = {
-        "oa_id": "STRING",
-        "doi": "STRING",
-        "title": "STRING",
+        "oa_id": "TEXT",
+        "doi": "TEXT",
+        "title": "TEXT",
         "publication_year": "INT",
         "cited_by_count": "INT",
-        "abstract": "STRING",
-        "referenced_works": "STRING[]",
+        "abstract": "TEXT",
+        "referenced_works": "TEXT[]",
         "domain": "TEXT",
         "field": "TEXT",
         "topic": "TEXT",
@@ -52,6 +52,6 @@ if __name__ == "__main__":
             delay_between_calls=0.2,
         )
     )
-    with CockroachClient() as cr_client:
+    with PostgresClient() as cr_client:
         cr_client.generate_table(table_name, sql_fields, pk="oa_id")
         cr_client.upload_works(table_name, all_works, sql_fields, pk="oa_id")

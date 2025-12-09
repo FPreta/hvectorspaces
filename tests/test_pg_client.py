@@ -120,7 +120,7 @@ def test_fetch_in_decade_references():
             decade_start, additional_fields=["publication_year", "referenced_works"]
         )
         results = list(results)
-        assert len(results) > 0
+        assert len(results) == 3462
         oa_ids = {row[0] for row in results}
         assert any(in_dec_ref for _, in_dec_ref, _, _ in results)
         for row in results:
