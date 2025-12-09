@@ -16,12 +16,22 @@ class PostgresClient:
     def __init__(self):
         # Uses standard Postgres env vars
         # If you want explicit arguments, we can add them later.
+        host = os.getenv("PG_HOST", "localhost")
+        database = os.getenv("PG_DATABASE", "my_local_db")
+        user = os.getenv("PG_USER")
+        password = os.getenv("PG_PASSWORD")
+        port = os.getenv("PG_PORT", "5432")
+        if not user:
+            raise ValueError("Environment variable PG_USER is not set. Please set PG_USER to specify the database user.")
+        logging.info(
+            f"Connecting to PostgreSQL with host='{host}', database='{database}', user='{user}', port='{port}'"
+        )
         self.conn = psycopg2.connect(
-            host=os.getenv("PG_HOST", "localhost"),
-            database=os.getenv("PG_DATABASE", "my_local_db"),
-            user=os.getenv("PG_USER"),
-            password=os.getenv("PG_PASSWORD"),
-            port=os.getenv("PG_PORT", "5432"),
+            host=host,
+            database=database,
+            user=user,
+            password=password,
+            port=port,
         )
         self.conn.autocommit = False
 
