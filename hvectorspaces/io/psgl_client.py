@@ -53,13 +53,9 @@ class PostgresClient:
         Run a function in a transaction.
         No retries, since PostgreSQL doesn't require CRDB-style retry loops.
         """
-        try:
-            with self.conn:
-                with self.conn.cursor() as cur:
-                    return func(cur, *args, **kwargs)
-        except Exception:
-            self.conn.rollback()
-            raise
+        with self.conn:
+            with self.conn.cursor() as cur:
+                return func(cur, *args, **kwargs)
 
     # ---------------------------------------------------
     # Schema utilities
