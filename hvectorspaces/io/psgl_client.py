@@ -32,10 +32,7 @@ class PostgresClient:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if exc_type:
-            self.conn.rollback()
-        else:
-            self.conn.commit()
+        # Transaction management is handled by run_transaction; just close the connection here.
         self.conn.close()
 
     # ---------------------------------------------------
