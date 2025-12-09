@@ -129,7 +129,10 @@ createdb hvectorspaces
 
 Or from psql:
 
+```sql
 CREATE DATABASE hvectorspaces;
+
+```
 
 ## 4. Configure environment variables
 

@@ -317,7 +317,6 @@ class CockroachClient:
             [] or ["W1","W2"]
         """
 
-
         # --- Step 1: Detect column names and array columns ---
         with self.conn.cursor() as cur:
             cur.execute(f"SELECT * FROM {table_name} LIMIT 0")
@@ -344,7 +343,8 @@ class CockroachClient:
             logging.info(f"{table_name}: Array columns detected → {array_cols}")
 
         # --- Step 2: Count total rows for progress bar ---
-        total_rows = self.execute_sql(f"SELECT count(*) FROM {table_name}")[0][0]
+        query = f"SELECT count(*) FROM {table_name}"
+        total_rows = self.execute_sql(query)[0][0]
         pbar = tqdm(total=total_rows, unit="rows", desc=f"Exporting {table_name}")
 
         # --- Step 3: Streaming export with JSON conversion ---
@@ -355,9 +355,8 @@ class CockroachClient:
             offset = 0
 
             while True:
-                rows = self.execute_sql(
-                    f"SELECT * FROM {table_name} LIMIT {batch_size} OFFSET {offset}"
-                )
+                query = f"SELECT * FROM {table_name} LIMIT {batch_size} OFFSET {offset}"
+                rows = self.execute_sql(query)
                 if not rows:
                     break
 
