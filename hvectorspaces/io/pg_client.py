@@ -232,7 +232,9 @@ class PostgresClient:
         )
 
         def _exec(cur):
-            cur.copy_expert(copy_sql, f)
+            with opener(csv_path, "rt") as f:
+                next(f)  # skip header
+                cur.copy_expert(copy_sql, f)
 
         self.run_transaction(_exec)
 
@@ -289,7 +291,8 @@ class PostgresClient:
         pbar = tqdm(total=total, desc=f"Exporting {table_name}")
 
         offset = 0
-        with gzip.open(out_path, "wt", encoding="utf-8", newline="") as gz:
+        opener = gzip.open if out_path.endswith(".gz") else open
+        with opener(out_path, "wt", encoding="utf-8", newline="") as gz:
             writer = csv.writer(gz)
             writer.writerow(colnames)
 
