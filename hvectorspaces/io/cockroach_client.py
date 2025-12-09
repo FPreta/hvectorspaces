@@ -300,7 +300,8 @@ class CockroachClient:
     # Fetch CREATE TABLE statement
     # ---------------------------------------------
     def fetch_table_schema(self, table_name: str) -> str:
-        rows = self.execute_sql(f"SHOW CREATE TABLE {table_name}")
+        query = sql.SQL("SHOW CREATE TABLE {}").format(sql.Identifier(table_name))
+        rows = self.execute_sql(query)
         return rows[0][1]  # second column is the SQL string
 
     # ---------------------------------------------
