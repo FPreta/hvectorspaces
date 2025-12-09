@@ -121,7 +121,10 @@ We assume a database name like `hvectorspaces` (you can change it, but then upda
 
 From a terminal:
 
+```bash
 createdb hvectorspaces
+
+```
 
 
 Or from psql:

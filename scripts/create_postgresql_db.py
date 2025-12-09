@@ -1,9 +1,8 @@
-from hvectorspaces.io.psgl_client import PostgresClient
+from hvectorspaces.io.pg_client import PostgresClient
 
 
 def main():
     with PostgresClient() as client:
-
         client.load_csv(
             table_name="openalex_vector_spaces",
             csv_path="exported_db/openalex_vector_spaces.csv.gz",
