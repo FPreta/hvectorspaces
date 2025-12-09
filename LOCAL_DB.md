@@ -7,7 +7,7 @@ The local DB contains two tables:
 - `openalex_vector_spaces`
 - `per_decade_citation_graph`
 
-All data is stored locally in PostgreSQL and loaded from compressed CSV files that are **versioned in this repo** using git LSF.
+All data is stored locally in PostgreSQL and loaded from compressed CSV files that are **versioned in this repo** using Git LFS.
 
 ---
 
