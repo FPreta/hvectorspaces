@@ -26,6 +26,52 @@ def create_cluster_by_decade(
     clustering_method=CLUSTERING_METHOD,
     cluster_size_cutoff=CLUSTER_SIZE_CUTOFF,
 ):
+    """
+    Clusters scholarly works by decade using a specified community detection algorithm,
+    analyzes cluster metadata distributions, and outputs the results to a JSON file.
+
+    Parameters
+    ----------
+    output_path : str
+        Path to the output JSON file where clustering results will be saved.
+    decade_start : int, optional
+        The starting year for the first decade to cluster (default: 1950).
+    clustering_method : str, optional
+        The community detection algorithm to use (default: "leiden").
+    cluster_size_cutoff : int, optional
+        Minimum number of elements required for a cluster to be included (default: 5).
+
+    Returns
+    -------
+    None
+        The function does not return a value; results are written to the specified JSON file.
+
+    Output JSON Structure
+    --------------------
+    The output file is a dictionary mapping each decade (int) to its clusters.
+    Each cluster is represented as a dictionary with the following keys:
+        - "elements": int, number of items in the cluster
+        - "field_distribution": dict[str, float], normalized distribution of fields
+        - "domain_distribution": dict[str, float], normalized distribution of domains
+        - "topic_distribution": dict[str, float], normalized distribution of topics
+        - "intracluster_links": int, number of links within the cluster (added after calculation)
+        - "citation_count": dict[str, int], citation counts for referenced works (added after calculation)
+    Example:
+        {
+            "1950": {
+                "0": {
+                    "elements": 42,
+                    "field_distribution": {"Physics": 0.5, "Chemistry": 0.5},
+                    "domain_distribution": {"Science": 1.0},
+                    "topic_distribution": {"Quantum": 0.7, "Thermodynamics": 0.3},
+                    "intracluster_links": 123,
+                    "citation_count": {"ref1": 10, "ref2": 5}
+                },
+                ...
+            },
+            ...
+        }
+    """
     client = PostgresClient()
     clusterer = CommunityDetector()
     decade_to_clusters = {}
