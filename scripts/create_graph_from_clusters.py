@@ -18,13 +18,30 @@ def dominant_field(field_dist):
 
 
 def main():
+    """
+    Visualizes the longitudinal evolution of clusters using data from 'clustering_data.json'.
+
+    Input:
+        - clustering_data.json: A JSON file containing cluster information for each decade.
+          The expected format is:
+              {
+                  "decade": {
+                      "cluster_id": {
+                          "elements": int,
+                          "field_distribution": {field: probability, ...},
+                          "intracluster_links": {target_cluster_id: weight, ...}
+                      },
+                      ...
+                  },
+                  ...
+              }
+
+    Output:
+        - cluster_evolution.svg: An SVG file visualizing the cluster evolution, with nodes colored by dominant field and edges representing cluster links.
+    """
     # ----------------------------
     # Load clustering data
     # ----------------------------
-
-    with open("clustering_data.json") as f:
-        data = json.load(f)
-
     G = nx.DiGraph()
 
     # Collect field values so we can make a consistent color palette
