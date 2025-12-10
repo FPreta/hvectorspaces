@@ -129,7 +129,7 @@ def main():
         G,
         pos,
         node_color=node_colors,
-        node_size=[100 * math.log(node_size) for node_size in node_sizes],
+        node_size=[100 * math.log(max(node_size, 1)) for node_size in node_sizes],
         edgecolors="black",
         linewidths=0.5,
     )
