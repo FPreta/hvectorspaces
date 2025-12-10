@@ -110,13 +110,13 @@ def create_cluster_by_decade(
         field_distribution = defaultdict(Counter)
         domain_distribution = defaultdict(Counter)
         citation_count_by_cluster = defaultdict(Counter)
-        for k, v in clusters.items():
-            for oa_id in v:
-                topic_distribution[k][metadata[oa_id]["topic"]] += 1
-                field_distribution[k][metadata[oa_id]["field"]] += 1
-                domain_distribution[k][metadata[oa_id]["domain"]] += 1
+        for cluster_id, cluster_members in clusters.items():
+            for oa_id in cluster_members:
+                topic_distribution[cluster_id][metadata[oa_id]["topic"]] += 1
+                field_distribution[cluster_id][metadata[oa_id]["field"]] += 1
+                domain_distribution[cluster_id][metadata[oa_id]["domain"]] += 1
                 for ref in metadata[oa_id]["full_references"]:
-                    citation_count_by_cluster[f"{start}-{k}"][ref] += 1
+                    citation_count_by_cluster[f"{start}-{cluster_id}"][ref] += 1
 
         # Normalize distributions
         topic_distribution = {
