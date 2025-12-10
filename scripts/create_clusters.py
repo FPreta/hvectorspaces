@@ -12,10 +12,10 @@ CLUSTERING_METHOD = "leiden"
 
 
 def normalize_distribution(counter: Counter) -> dict[str, float]:
-    total = sum(counter.values()) - counter[None]
+    total = sum(counter.values()) - counter.get(None, 0)
     return (
         {k: v / total for k, v in counter.items() if k is not None}
-        if total
+        if total > 0
         else counter
     )
 
