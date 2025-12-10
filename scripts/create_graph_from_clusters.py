@@ -97,7 +97,8 @@ def main():
     for node in G.nodes():
         fd = G.nodes[node]["field_dist"]
         df = dominant_field(fd)
-        all_dominant_fields.add(df)
+        if df is not None:
+            all_dominant_fields.add(df)
         color = field_to_color.get(df, (0.5, 0.5, 0.5))
         node_colors.append(color)
 
