@@ -102,9 +102,9 @@ def create_cluster_by_decade(
 
         print(f"Found {len(clusters)} clusters.")
         # Map nodes to cluster ids
-        for k, vs in clusters.items():
-            for v in vs:
-                node_to_cluster[v] = f"{start}-{k}"
+        for cluster_id, cluster_members in clusters.items():
+            for member in cluster_members:
+                node_to_cluster[member] = f"{start}-{cluster_id}"
         # Find distributions of topic, field, domain
         topic_distribution = defaultdict(Counter)
         field_distribution = defaultdict(Counter)
@@ -120,23 +120,23 @@ def create_cluster_by_decade(
 
         # Normalize distributions
         topic_distribution = {
-            k: normalize_distribution(v) for k, v in topic_distribution.items()
+            cluster_id: normalize_distribution(distribution) for cluster_id, distribution in topic_distribution.items()
         }
         field_distribution = {
-            k: normalize_distribution(v) for k, v in field_distribution.items()
+            cluster_id: normalize_distribution(distribution) for cluster_id, distribution in field_distribution.items()
         }
         domain_distribution = {
-            k: normalize_distribution(v) for k, v in domain_distribution.items()
+            cluster_id: normalize_distribution(distribution) for cluster_id, distribution in domain_distribution.items()
         }
         # Save decade data
         decade_to_clusters[start] = {
-            k: {
-                "elements": len(v),
-                "field_distribution": field_distribution[k],
-                "domain_distribution": domain_distribution[k],
-                "topic_distribution": topic_distribution[k],
+            cluster_id: {
+                "elements": len(cluster_members),
+                "field_distribution": field_distribution[cluster_id],
+                "domain_distribution": domain_distribution[cluster_id],
+                "topic_distribution": topic_distribution[cluster_id],
             }
-            for k, v in clusters.items()
+            for cluster_id, cluster_members in clusters.items()
         }
 
     # Calculate intracluster links
