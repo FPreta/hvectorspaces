@@ -16,7 +16,7 @@ def normalize_distribution(counter: Counter) -> dict[str, float]:
     return (
         {k: v / total for k, v in counter.items() if k is not None}
         if total > 0
-        else counter
+        else {}
     )
 
 
