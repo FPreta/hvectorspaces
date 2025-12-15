@@ -1,4 +1,5 @@
 import json
+import logging
 from collections import Counter, defaultdict
 
 from tqdm import tqdm
@@ -11,20 +12,52 @@ CLUSTER_SIZE_CUTOFF = 5
 CLUSTERING_METHOD = "leiden"
 
 
+def parse_arguments():
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Clusters scholarly works by decade and analyzes cluster metadata distributions."
+    )
+    parser.add_argument(
+        "--output_path",
+        type=str,
+        required=True,
+        help="Path to the output JSON file where clustering results will be saved.",
+    )
+    parser.add_argument(
+        "--decade_start",
+        type=int,
+        default=DECADE_START,
+        help="The starting year for the first decade to cluster (default: 1950).",
+    )
+    parser.add_argument(
+        "--clustering_method",
+        type=str,
+        default=CLUSTERING_METHOD,
+        help="The community detection algorithm to use (default: 'leiden').",
+    )
+    parser.add_argument(
+        "--cluster_size_cutoff",
+        type=int,
+        default=CLUSTER_SIZE_CUTOFF,
+        help="Minimum number of elements required for a cluster to be included (default: 5).",
+    )
+
+    return parser.parse_args()
+
+
 def normalize_distribution(counter: Counter) -> dict[str, float]:
     total = sum(counter.values()) - counter.get(None, 0)
     return (
-        {k: v / total for k, v in counter.items() if k is not None}
-        if total > 0
-        else {}
+        {k: v / total for k, v in counter.items() if k is not None} if total > 0 else {}
     )
 
 
 def create_cluster_by_decade(
     output_path,
-    decade_start=DECADE_START,
-    clustering_method=CLUSTERING_METHOD,
-    cluster_size_cutoff=CLUSTER_SIZE_CUTOFF,
+    decade_start,
+    clustering_method,
+    cluster_size_cutoff,
 ):
     """
     Clusters scholarly works by decade using a specified community detection algorithm,
@@ -100,7 +133,7 @@ def create_cluster_by_decade(
         # Filter clusters by cutoff
         clusters = {k: v for k, v in clusters.items() if len(v) > cluster_size_cutoff}
 
-        print(f"Found {len(clusters)} clusters.")
+        logging.info(f"Found {len(clusters)} clusters.")
         # Map nodes to cluster ids
         for cluster_id, cluster_members in clusters.items():
             for member in cluster_members:
@@ -120,13 +153,16 @@ def create_cluster_by_decade(
 
         # Normalize distributions
         topic_distribution = {
-            cluster_id: normalize_distribution(distribution) for cluster_id, distribution in topic_distribution.items()
+            cluster_id: normalize_distribution(distribution)
+            for cluster_id, distribution in topic_distribution.items()
         }
         field_distribution = {
-            cluster_id: normalize_distribution(distribution) for cluster_id, distribution in field_distribution.items()
+            cluster_id: normalize_distribution(distribution)
+            for cluster_id, distribution in field_distribution.items()
         }
         domain_distribution = {
-            cluster_id: normalize_distribution(distribution) for cluster_id, distribution in domain_distribution.items()
+            cluster_id: normalize_distribution(distribution)
+            for cluster_id, distribution in domain_distribution.items()
         }
         # Save decade data
         decade_to_clusters[start] = {
@@ -175,4 +211,10 @@ def create_cluster_by_decade(
 
 
 if __name__ == "__main__":
-    create_cluster_by_decade("clustering_data.json")
+    args = parse_arguments()
+    create_cluster_by_decade(
+        args.output_path,
+        args.decade_start,
+        args.clustering_method,
+        args.cluster_size_cutoff,
+    )

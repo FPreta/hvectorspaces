@@ -1,28 +1,49 @@
+import argparse
 import json
-import math
 
 import matplotlib.pyplot as plt
 import networkx as nx
-from matplotlib.patches import Patch
+
+from hvectorspaces.utils.distribution_utils import find_all_dominant_fields
+from hvectorspaces.visualization.draw import draw_cluster_evolution_svg
+from hvectorspaces.visualization.nodes import compute_layout, compute_node_attributes
+
+# ----------------------------
+# Parsing command-line arguments
+# ----------------------------
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(
+        description="Visualizes the longitudinal evolution of clusters using data from 'clustering_data.json'."
+    )
+    parser.add_argument(
+        "--input_path",
+        type=str,
+        required=True,
+        help="Path to the JSON file containing clustering data.",
+    )
+    parser.add_argument(
+        "--output_path",
+        type=str,
+        required=True,
+        help="Path to save the output SVG file.",
+    )
+
+    return parser.parse_args()
+
 
 # ----------------------------
 # Helper functions
 # ----------------------------
 
 
-def dominant_field(field_dist):
-    """Return the field with the highest probability."""
-    if not field_dist:
-        return None
-    return max(field_dist.items(), key=lambda x: x[1])[0]
-
-
-def main():
+def main(input_path: str, output_path: str):
     """
     Visualizes the longitudinal evolution of clusters using data from 'clustering_data.json'.
 
-    Input:
-        - clustering_data.json: A JSON file containing cluster information for each decade.
+    Arguments:
+        input_path (str): Path to the JSON file containing clustering data.
           The expected format is:
               {
                   "decade": {
@@ -36,16 +57,19 @@ def main():
                   ...
               }
 
-    Output:
-        - cluster_evolution.svg: An SVG file visualizing the cluster evolution, with nodes colored by dominant field and edges representing cluster links.
+        output_path (str): path to an SVG file visualizing the cluster evolution,
+                with nodes colored by dominant field and edges representing cluster links.
     """
     # ----------------------------
     # Load clustering data
     # ----------------------------
-    G = nx.DiGraph()
+    graph = nx.DiGraph()
 
     # Collect field values so we can make a consistent color palette
     all_fields = set()
+
+    with open(input_path, "r") as f:
+        data = json.load(f)
 
     for decade, clusters in data.items():
         for cid, info in clusters.items():
@@ -53,7 +77,10 @@ def main():
                 if f is not None:
                     all_fields.add(f)
 
+    all_relevant_fields = find_all_dominant_fields(data)
+
     all_fields = sorted(all_fields)
+
     palette = plt.cm.tab20
     field_to_color = {f: palette(i % 20) for i, f in enumerate(all_fields)}
 
@@ -68,7 +95,7 @@ def main():
         decade = int(decade)
         for cid, info in clusters.items():
             node_id = f"{decade}-{cid}"
-            G.add_node(
+            graph.add_node(
                 node_id,
                 decade=decade,
                 size=info["elements"],
@@ -77,122 +104,36 @@ def main():
 
             # Add weighted edges to referenced clusters
             for target, weight in info["intracluster_links"].items():
-                G.add_edge(node_id, target, weight=weight)
+                graph.add_edge(node_id, target, weight=weight)
 
     # ----------------------------
     # Compute layout (ordered by color)
     # ----------------------------
 
-    pos = {}
-    decades = sorted(int(d) for d in data.keys())
-    y_spacing = 1.4
-
-    for decade in decades:
-        cluster_ids = list(data[str(decade)].keys())
-        cluster_ids = [int(cid) for cid in cluster_ids]
-
-        # Sort clusters by field color group → then by size
-        def sort_key(cid):
-            info = data[str(decade)][str(cid)]
-            df = dominant_field(info["field_distribution"])
-            rank = field_to_rank.get(df, len(field_to_rank) + 1)
-            return (rank, -info["elements"])
-
-        sorted_cluster_ids = sorted(cluster_ids, key=sort_key)
-
-        # Assign positions
-        for i, cid in enumerate(sorted_cluster_ids):
-            pos[f"{decade}-{cid}"] = (decade, i * y_spacing)
-
+    pos = compute_layout(data, field_to_rank)
     # ----------------------------
     # Compute node attributes (color, size)
     # ----------------------------
 
-    node_colors = []
-    node_sizes = []
-    all_dominant_fields = set()
-    for node in G.nodes():
-        fd = G.nodes[node]["field_dist"]
-        df = dominant_field(fd)
-        if df is not None:
-            all_dominant_fields.add(df)
-        color = field_to_color.get(df, (0.5, 0.5, 0.5))
-        node_colors.append(color)
-
-        node_sizes.append(G.nodes[node]["size"] * 35)
+    node_colors, node_sizes = compute_node_attributes(graph, field_to_color)
 
     # ----------------------------
-    # Draw figure
-    # ----------------------------
+    # Draw and save graph
+    # --------------------------
 
-    plt.figure(figsize=(22, 12))
-
-    # Draw edges
-    edges = list(G.edges())
-    edge_widths = [G[u][v]["weight"] * 2500 for u, v in edges]
-
-    nx.draw_networkx_edges(
-        G,
+    draw_cluster_evolution_svg(
+        graph,
         pos,
-        edgelist=edges,
-        width=edge_widths,
-        edge_color="black",
-        alpha=0.25,
-        arrows=False,
+        sorted(int(d) for d in data.keys()),
+        node_colors,
+        node_sizes,
+        field_to_color,
+        all_fields,
+        all_relevant_fields,
+        output_path,
     )
-
-    # Draw nodes
-    nx.draw_networkx_nodes(
-        G,
-        pos,
-        node_color=node_colors,
-        node_size=[100 * math.log(max(node_size, 1)) for node_size in node_sizes],
-        edgecolors="black",
-        linewidths=0.5,
-    )
-
-    # Node labels (cluster ID only)
-    labels = {n: n.split("-")[1] for n in G.nodes()}
-    nx.draw_networkx_labels(G, pos, labels, font_size=7)
-
-    # Draw decade separators
-    for d in decades:
-        plt.axvline(d, color="gray", lw=0.4, linestyle="--")
-
-    plt.xticks(decades)
-    plt.xlabel("Decade")
-    plt.ylabel("Clusters (sorted by dominant field / color)")
-    plt.title("Longitudinal Cluster Evolution (Ordered by Field Color)")
-    # ----------------------------
-    # Create Legend (Color → Field mapping)
-    # ----------------------------
-
-    legend_handles = [
-        Patch(facecolor=field_to_color[f], edgecolor="black", label=f)
-        for f in all_fields
-        if f in all_dominant_fields
-    ]
-
-    plt.legend(
-        handles=legend_handles,
-        title="Field → Color Mapping",
-        loc="center left",
-        bbox_to_anchor=(1.02, 0.5),
-        frameon=True,
-    )
-    plt.tight_layout()
-
-    # ----------------------------
-    # Save to SVG
-    # ----------------------------
-
-    output_path = "cluster_evolution.svg"
-    plt.savefig(output_path, format="svg", bbox_inches="tight", dpi=300)
-
-    print(f"SVG saved to: {output_path}")
-
-    plt.show()
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_arguments()
+    main(args.input_path, args.output_path)
