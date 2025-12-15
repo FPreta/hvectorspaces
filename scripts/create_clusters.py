@@ -42,6 +42,12 @@ def parse_arguments():
         default=CLUSTER_SIZE_CUTOFF,
         help="Minimum number of elements required for a cluster to be included (default: 5).",
     )
+    parser.add_argument(
+        "--top_n",
+        type=int,
+        default=10,
+        help="Number of top clusters to consider based on size (default: 10).",
+    )
 
     return parser.parse_args()
 
@@ -54,10 +60,7 @@ def normalize_distribution(counter: Counter) -> dict[str, float]:
 
 
 def create_cluster_by_decade(
-    output_path,
-    decade_start,
-    clustering_method,
-    cluster_size_cutoff,
+    output_path, decade_start, clustering_method, cluster_size_cutoff, top_n
 ):
     """
     Clusters scholarly works by decade using a specified community detection algorithm,
@@ -109,6 +112,7 @@ def create_cluster_by_decade(
     clusterer = CommunityDetector()
     decade_to_clusters = {}
     node_to_cluster = {}
+    citation_count_by_cluster = defaultdict(Counter)
     for start in tqdm(range(decade_start, 2025, 10)):
         decade_data = client.fetch_per_decade_data(
             start, ["topic", "field", "domain", "referenced_works"]
@@ -126,9 +130,11 @@ def create_cluster_by_decade(
         # Finds clusters
         clusters = clusterer.detect(graph, method=clustering_method)
 
-        # Take the top 10 clusters
+        # Take the top_n clusters
         clusters = dict(
-            sorted(clusters.items(), key=lambda item: len(item[1]), reverse=True)[:15]
+            sorted(clusters.items(), key=lambda item: len(item[1]), reverse=True)[
+                :top_n
+            ]
         )
         # Filter clusters by cutoff
         clusters = {k: v for k, v in clusters.items() if len(v) > cluster_size_cutoff}
@@ -142,7 +148,7 @@ def create_cluster_by_decade(
         topic_distribution = defaultdict(Counter)
         field_distribution = defaultdict(Counter)
         domain_distribution = defaultdict(Counter)
-        citation_count_by_cluster = defaultdict(Counter)
+
         for cluster_id, cluster_members in clusters.items():
             for oa_id in cluster_members:
                 topic_distribution[cluster_id][metadata[oa_id]["topic"]] += 1
@@ -176,13 +182,16 @@ def create_cluster_by_decade(
         }
 
     # Calculate intracluster links
-    for start in decade_to_clusters:
-        clusters = decade_to_clusters[start]
+    for start, clusters in decade_to_clusters.items():
         for cluster_id in clusters:
             citation_counter = citation_count_by_cluster[f"{start}-{cluster_id}"]
             new_citation_counter = Counter()
             for ref, count in citation_counter.items():
-                if ref in node_to_cluster:
+                # Exclude self-citations within the same cluster
+                if (
+                    ref in node_to_cluster
+                    and node_to_cluster[ref] != f"{start}-{cluster_id}"
+                ):
                     new_citation_counter[node_to_cluster[ref]] += count
             # Normalize by dividing each count by the product of the number of elements in the clusters
             for ref_cluster_id in new_citation_counter:
@@ -217,4 +226,5 @@ if __name__ == "__main__":
         args.decade_start,
         args.clustering_method,
         args.cluster_size_cutoff,
+        args.top_n,
     )

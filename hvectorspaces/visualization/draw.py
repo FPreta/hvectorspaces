@@ -5,6 +5,7 @@ import networkx as nx
 from matplotlib.patches import Patch
 
 
+# TODO: deal with constants
 def create_legend_handles(
     field_to_color: dict[str, tuple[float, float, float]],
     all_fields: list[str],
@@ -40,7 +41,7 @@ def draw_cluster_evolution_svg(
 
     # Draw edges
     edges = list(graph.edges())
-    edge_widths = [graph[u][v]["weight"] * 2500 for u, v in edges]
+    edge_widths = [100 * graph[u][v]["weight"] for u, v in edges]
 
     nx.draw_networkx_edges(
         graph,
