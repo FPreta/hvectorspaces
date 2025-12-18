@@ -1,6 +1,3 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
-setup(
-    name="hvectorspaces",
-    packages=["hvectorspaces"],  # ← only use this package
-)
+setup(name="hvectorspaces", packages=find_packages())
