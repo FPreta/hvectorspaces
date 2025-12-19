@@ -220,3 +220,14 @@ The `scripts` folder contains scripts for data acquisition and processing. The m
 - `create_postgresql_db.py`: This script was used in a migration from CockroachDB to PostgreSQL. It creates the `openalex_vector_spaces` table in the PostgreSQL instance with the appropriate schema and loads the data from local CSV files into the table.
 - `sql_upload_oa_data.py`: This script uploads OpenAlex data to the PostgreSQL instance. It reads data from a specified source and populates the `openalex_vector_spaces` table. Currently, it searches for all works that contain the term "vector space" in their title or abstract, were published after 1920 and have more than 20 citations. Starting from these seed works, it performs a breadth-first search in the citation network to collect all works that cite or are cited by the seed works, up to 2 hops away, filtering out those that have less than 20 citations.
 - `add_in_decade_references_column.py`: This script adds the `in_decade_references` column to the `openalex_vector_spaces` table. It populates this column with the list of cited works that were published in the same decade as the citing work.
+- `create_clusters.py`: This script uses a pre-defined clustering method (defaults to `leiden`) to create clusters of works within different decades based on their citation relationships. The script can be updated to fetch additional fields from the database as needed. It can be called from cli with
+
+```bash
+python -m scripts.create_clusters --output_path <json_path>
+```
+
+- `create_graph_from_clusters.py`: This script generates a citation graph from the clusters created in the previous step. It constructs a directed graph where nodes represent works and edges represent citation relationships between them, divided by decades. The resulting graph is saved in a specified output path. It can be called from cli with
+
+```bash
+python -m scripts.create_graph_from_clusters --input_path <json_path> --output_path <graph_path>
+```
