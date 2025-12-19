@@ -225,6 +225,8 @@ The `scripts` folder contains scripts for data acquisition and processing. The m
 ```bash
 python -m scripts.create_clusters --output_path <json_path>
 ```
+Optional arguments are: `--clustering_method` (default: `leiden`), `--decade_start` (default: 1950), `--cluster_size_cutoff` (default: 5) and `--top_n` (default: 10). Additional information can be found in the docstring of the main method.
+
 
 - `create_graph_from_clusters.py`: This script generates a citation graph from the clusters created in the previous step. It constructs a directed graph where nodes represent works and edges represent citation relationships between them, divided by decades. The resulting graph is saved in a specified output path. It can be called from cli with
 

@@ -114,10 +114,12 @@ def create_cluster_by_decade(
     node_to_cluster = {}
     citation_count_by_cluster = defaultdict(Counter)
     for start in tqdm(range(decade_start, 2025, 10)):
+        # Fetch data for the decade. Fields can be modified here
         decade_data = client.fetch_per_decade_data(
             start, ["topic", "field", "domain", "referenced_works"]
         )
         metadata = {}
+        # If fields are modified, update this loop accordingly
         for oa_id, references, topic, field, domain, full_references in decade_data:
             metadata[oa_id] = {
                 "references": references,
@@ -131,11 +133,12 @@ def create_cluster_by_decade(
         clusters = clusterer.detect(graph, method=clustering_method)
 
         # Take the top_n clusters
-        clusters = dict(
-            sorted(clusters.items(), key=lambda item: len(item[1]), reverse=True)[
-                :top_n
-            ]
-        )
+        if top_n:
+            clusters = dict(
+                sorted(clusters.items(), key=lambda item: len(item[1]), reverse=True)[
+                    :top_n
+                ]
+            )
         # Filter clusters by cutoff
         clusters = {k: v for k, v in clusters.items() if len(v) > cluster_size_cutoff}
 
@@ -170,7 +173,9 @@ def create_cluster_by_decade(
             cluster_id: normalize_distribution(distribution)
             for cluster_id, distribution in domain_distribution.items()
         }
-        # Save decade data
+        # Here you can add more metadata if needed (e.g. all titles and/or abstracts in the cluster)
+
+        # Save decade data (can add more metadata if needed)
         decade_to_clusters[start] = {
             cluster_id: {
                 "elements": len(cluster_members),
