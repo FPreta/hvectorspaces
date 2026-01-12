@@ -17,3 +17,5 @@ PKG-info
 requires.txt
 SOURCES.txt
 top_level.txt
+data/
+models/
