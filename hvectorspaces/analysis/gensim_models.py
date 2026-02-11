@@ -18,7 +18,7 @@ def ngram_builder(corpus:list[list[str]], min_count:str=5, threshold:str=5, deli
         delimiter="_",   # <-- str, not bytes
     )
     phraser = Phraser(ngram)
-    corpus_ngram = [phraser[doc] for doc in corpus_lemmatized]
+    corpus_ngram = [phraser[doc] for doc in corpus]
     return corpus_ngram
 
 # ---------- (A) Optional: write your tokenized docs to disk (recommended if big) ----------
