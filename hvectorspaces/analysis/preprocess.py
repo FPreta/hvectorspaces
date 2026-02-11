@@ -5,7 +5,6 @@ import unicodedata
 from collections import Counter
 from spacy.lang.en import English
 from spacy.tokens.doc import Doc
-from spacy.util import compile_infix_regex
 
 def merge_title_and_abstract(entry:dict[str,str]):
     if isinstance(entry['abstract'], str):
@@ -108,6 +107,8 @@ def replace_hyphen_terms(
     return out
 
 def init_spacy() -> English:
+    from spacy.util import compile_infix_regex
+    
     nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"])
     # remove hyphen from infix patterns so "ship-to-ship" stays one token
     infixes = list(nlp.Defaults.infixes)
@@ -117,7 +118,7 @@ def init_spacy() -> English:
     
     return nlp
 
-def spacy_docs(corpus:list[str]) -> list[Doc]:
+def spacy_docs(corpus:list[str], nlp:English) -> list[Doc]:
     docs = list()
     for item in corpus:
         docs.append(nlp(item))
