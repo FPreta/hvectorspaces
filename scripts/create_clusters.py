@@ -2,12 +2,13 @@ import json
 import logging
 from collections import Counter, defaultdict
 
+import networkx as nx
 from tqdm import tqdm
 
 from hvectorspaces.data.clustering.community_detector import CommunityDetector
 from hvectorspaces.io import PostgresClient
 
-DECADE_START = 1950
+BINS = [[1920, 1930, 1940, 1950, 1960, 1970], [1980, 1990], [2000], [2010], [2020]]
 CLUSTER_SIZE_CUTOFF = 5
 CLUSTERING_METHOD = "leiden"
 
@@ -25,10 +26,10 @@ def parse_arguments():
         help="Path to the output JSON file where clustering results will be saved.",
     )
     parser.add_argument(
-        "--decade_start",
-        type=int,
-        default=DECADE_START,
-        help="The starting year for the first decade to cluster (default: 1950).",
+        "--bins",
+        type=json.loads,
+        default=BINS,
+        help="JSON list of decade bins to cluster, e.g. '[[1920,1930],[1940]]' (default: BINS constant).",
     )
     parser.add_argument(
         "--clustering_method",
@@ -48,6 +49,12 @@ def parse_arguments():
         default=10,
         help="Number of top clusters to consider based on size (default: 10).",
     )
+    parser.add_argument(
+        "--network_output_path",
+        type=str,
+        default=None,
+        help="Path to output JSON file with raw citation networks (one graph per bin). If omitted, no file is written.",
+    )
 
     return parser.parse_args()
 
@@ -60,7 +67,7 @@ def normalize_distribution(counter: Counter) -> dict[str, float]:
 
 
 def create_cluster_by_decade(
-    output_path, decade_start, clustering_method, cluster_size_cutoff, top_n
+    output_path, bins, clustering_method, cluster_size_cutoff, top_n, network_output_path=None
 ):
     """
     Clusters scholarly works by decade using a specified community detection algorithm,
@@ -113,11 +120,17 @@ def create_cluster_by_decade(
     decade_to_clusters = {}
     node_to_cluster = {}
     citation_count_by_cluster = defaultdict(Counter)
-    for start in tqdm(range(decade_start, 2025, 10)):
-        # Fetch data for the decade. Fields can be modified here
-        decade_data = client.fetch_per_decade_data(
-            start, ["topic", "field", "domain", "referenced_works"]
-        )
+    bin_graphs = []
+    for bin_decades in tqdm(bins):
+        start = bin_decades[0]
+        # Fetch and merge data for all decades in the bin
+        decade_data = []
+        for decade in bin_decades:
+            decade_data.extend(
+                client.fetch_per_decade_data(
+                    decade, ["topic", "field", "domain", "referenced_works"]
+                )
+            )
         metadata = {}
         # If fields are modified, update this loop accordingly
         for oa_id, references, topic, field, domain, full_references in decade_data:
@@ -143,6 +156,23 @@ def create_cluster_by_decade(
         clusters = {k: v for k, v in clusters.items() if len(v) > cluster_size_cutoff}
 
         logging.info(f"Found {len(clusters)} clusters.")
+
+        # Build paper-level citation graph for this bin
+        if network_output_path:
+            node_cluster = {
+                member: cluster_id
+                for cluster_id, members in clusters.items()
+                for member in members
+            }
+            G = nx.DiGraph(id=str(start))
+            for oa_id, data in metadata.items():
+                G.add_node(oa_id, topic=data["topic"] or "", cluster=node_cluster.get(oa_id, -1))
+            for oa_id, refs in graph.items():
+                for ref in refs:
+                    if ref in metadata:
+                        G.add_edge(oa_id, ref)
+            bin_graphs.append(G)
+
         # Map nodes to cluster ids
         for cluster_id, cluster_members in clusters.items():
             for member in cluster_members:
@@ -220,6 +250,20 @@ def create_cluster_by_decade(
                 intracluster_citations / total_citations if total_citations > 0 else 0
             )
 
+    if network_output_path:
+        networks = {}
+        for G in bin_graphs:
+            bin_id = G.graph["id"]
+            networks[bin_id] = {
+                "nodes": [
+                    {"id": n, **attrs} for n, attrs in G.nodes(data=True)
+                ],
+                "edges": [[u, v] for u, v in G.edges()],
+            }
+        with open(network_output_path, "wt") as f:
+            json.dump(networks, f)
+        logging.info(f"✓ Written network to {network_output_path}")
+
     with open(output_path, "wt") as fout:
         json.dump(decade_to_clusters, fout, indent=2)
 
@@ -228,8 +272,9 @@ if __name__ == "__main__":
     args = parse_arguments()
     create_cluster_by_decade(
         args.output_path,
-        args.decade_start,
+        args.bins,
         args.clustering_method,
         args.cluster_size_cutoff,
         args.top_n,
+        args.network_output_path,
     )

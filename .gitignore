@@ -19,3 +19,7 @@ SOURCES.txt
 top_level.txt
 data/
 models/
+citation_networks*
+clustering_data*
+domain_distribution*
+cluster_evolution*
