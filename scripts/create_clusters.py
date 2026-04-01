@@ -166,7 +166,7 @@ def create_cluster_by_decade(
             }
             G = nx.DiGraph(id=str(start))
             for oa_id, data in metadata.items():
-                G.add_node(oa_id, topic=data["topic"] or "", cluster=node_cluster.get(oa_id, -1))
+                G.add_node(oa_id, topic=data["topic"] or "", field=data["field"] or "", domain=data["domain"] or "", cluster=node_cluster.get(oa_id, -1))
             for oa_id, refs in graph.items():
                 for ref in refs:
                     if ref in metadata:
@@ -261,7 +261,7 @@ def create_cluster_by_decade(
                 "edges": [[u, v] for u, v in G.edges()],
             }
         with open(network_output_path, "wt") as f:
-            json.dump(networks, f)
+            json.dump(networks, f, indent=2)
         logging.info(f"✓ Written network to {network_output_path}")
 
     with open(output_path, "wt") as fout:
