@@ -25,6 +25,7 @@ if __name__ == "__main__":
         "referenced_works": "TEXT[]",
         "domain": "TEXT",
         "field": "TEXT",
+        "subfield": "TEXT",
         "topic": "TEXT",
         "layer": "INT",
     }
