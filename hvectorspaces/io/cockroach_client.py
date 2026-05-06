@@ -192,9 +192,7 @@ class CockroachClient:
         with self.conn.cursor() as cur:
             cur.execute(drop_query)
         self.conn.commit()
-        logging.info(
-            f"✅ Dropped table '{table_name}'{' (CASCADE)' if cascade else ''}."
-        )
+        logging.info(f"✅ Dropped table '{table_name}'{' (CASCADE)' if cascade else ''}.")
 
     def fetch_per_decade_data(
         self, decade_start: int, additional_fields: Optional[list] = None
@@ -254,12 +252,14 @@ class CockroachClient:
     # List tables
     # ---------------------------------------------
     def list_tables(self):
-        rows = self.execute_sql("""
+        rows = self.execute_sql(
+            """
             SELECT table_name
             FROM information_schema.tables
             WHERE table_schema = 'public'
             ORDER BY table_name;
-        """)
+        """
+        )
         return [r[0] for r in rows]
 
     def convert_crdb_schema_to_postgres(self, crdb_sql: str) -> str:

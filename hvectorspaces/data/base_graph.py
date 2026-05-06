@@ -73,7 +73,8 @@ async def expand_batched(
     frontier = list(seen_ids)
     layers = []
 
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=60)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         for hop in range(1, hops + 1):
             logging.info(f"\n--- Hop {hop} ---")
             citing_works = await oa_client.collect_citing_works(

@@ -67,7 +67,12 @@ def normalize_distribution(counter: Counter) -> dict[str, float]:
 
 
 def create_cluster_by_decade(
-    output_path, bins, clustering_method, cluster_size_cutoff, top_n, network_output_path=None
+    output_path,
+    bins,
+    clustering_method,
+    cluster_size_cutoff,
+    top_n,
+    network_output_path=None,
 ):
     """
     Clusters scholarly works by decade using a specified community detection algorithm,
@@ -128,20 +133,46 @@ def create_cluster_by_decade(
         for decade in bin_decades:
             decade_data.extend(
                 client.fetch_per_decade_data(
-                    decade, ["topic", "field", "domain", "referenced_works"]
+                    decade,
+                    [
+                        "doi",
+                        "title",
+                        "publication_year",
+                        "cited_by_count",
+                        "topic",
+                        "field",
+                        "domain",
+                        "referenced_works",
+                    ],
                 )
             )
         metadata = {}
         # If fields are modified, update this loop accordingly
-        for oa_id, references, topic, field, domain, full_references in decade_data:
+        for (
+            oa_id,
+            references,
+            doi,
+            title,
+            publication_year,
+            cited_by_count,
+            topic,
+            field,
+            domain,
+            full_references,
+        ) in decade_data:
             metadata[oa_id] = {
+                "oa_id": oa_id,
+                "doi": doi,
+                "title": title,
+                "publication_year": publication_year,
+                "cited_by_count": cited_by_count,
                 "references": references,
                 "topic": topic,
                 "field": field,
                 "domain": domain,
                 "full_references": full_references,
             }
-        graph = {oa_id: metadata[oa_id]["references"] for oa_id in metadata}
+        graph = {oa_id: metadata[oa_id]["references"] or [] for oa_id in metadata}
         # Finds clusters
         clusters = clusterer.detect(graph, method=clustering_method)
 
@@ -166,7 +197,17 @@ def create_cluster_by_decade(
             }
             G = nx.DiGraph(id=str(start))
             for oa_id, data in metadata.items():
-                G.add_node(oa_id, topic=data["topic"] or "", field=data["field"] or "", domain=data["domain"] or "", cluster=node_cluster.get(oa_id, -1))
+                G.add_node(
+                    oa_id,
+                    doi=data["doi"] or "",
+                    title=data["title"] or "",
+                    publication_year=data["publication_year"],
+                    cited_by_count=data["cited_by_count"],
+                    topic=data["topic"] or "",
+                    field=data["field"] or "",
+                    domain=data["domain"] or "",
+                    cluster=node_cluster.get(oa_id, -1),
+                )
             for oa_id, refs in graph.items():
                 for ref in refs:
                     if ref in metadata:
@@ -176,7 +217,8 @@ def create_cluster_by_decade(
         # Map nodes to cluster ids
         for cluster_id, cluster_members in clusters.items():
             for member in cluster_members:
-                node_to_cluster[member] = f"{start}-{cluster_id}"
+                if member in metadata:
+                    node_to_cluster[member] = f"{start}-{cluster_id}"
         # Find distributions of topic, field, domain
         topic_distribution = defaultdict(Counter)
         field_distribution = defaultdict(Counter)
@@ -184,6 +226,8 @@ def create_cluster_by_decade(
 
         for cluster_id, cluster_members in clusters.items():
             for oa_id in cluster_members:
+                if oa_id not in metadata:
+                    continue
                 topic_distribution[cluster_id][metadata[oa_id]["topic"]] += 1
                 field_distribution[cluster_id][metadata[oa_id]["field"]] += 1
                 domain_distribution[cluster_id][metadata[oa_id]["domain"]] += 1
@@ -255,9 +299,7 @@ def create_cluster_by_decade(
         for G in bin_graphs:
             bin_id = G.graph["id"]
             networks[bin_id] = {
-                "nodes": [
-                    {"id": n, **attrs} for n, attrs in G.nodes(data=True)
-                ],
+                "nodes": [{"id": n, **attrs} for n, attrs in G.nodes(data=True)],
                 "edges": [[u, v] for u, v in G.edges()],
             }
         with open(network_output_path, "wt") as f:

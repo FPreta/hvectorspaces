@@ -27,6 +27,9 @@ dev = [
 [tool.pytest.ini_options]
 addopts = "-v"
 testpaths = ["tests"]
+markers = [
+    "integration: hits the real OpenAlex API (use -m 'not integration' to skip)",
+]
 
 [build-system]
 requires = ["setuptools>=61.0"]

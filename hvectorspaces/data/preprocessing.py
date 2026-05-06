@@ -48,6 +48,7 @@ def normalize_primary_topic(work):
     if work.get("primary_topic") is None:
         work["domain"] = None
         work["field"] = None
+        work["subfield"] = None
         work["topic"] = None
         return work
     work["domain"] = (
@@ -55,6 +56,9 @@ def normalize_primary_topic(work):
     )
     work["field"] = (
         work.get("primary_topic", {}).get("field", {}).get("display_name", None)
+    )
+    work["subfield"] = (
+        work.get("primary_topic", {}).get("subfield", {}).get("display_name", None)
     )
     work["topic"] = work.get("primary_topic", {}).get("display_name", None)
     return work
@@ -70,6 +74,7 @@ def normalize_work_fields_inplace(w):
         - referenced_works (list of oa_ids)
         - domain
         - field
+        - subfield
         - topic
     Removes the following unused fields:
         - abstract_inverted_index

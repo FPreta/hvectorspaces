@@ -125,21 +125,25 @@ class PostgresClient:
     # ---------------------------------------------------
     def list_tables(self) -> List[str]:
         """List all public schema tables."""
-        rows = self.execute_sql("""
+        rows = self.execute_sql(
+            """
             SELECT table_name
             FROM information_schema.tables
             WHERE table_schema = 'public'
             ORDER BY table_name;
-        """)
+        """
+        )
         return [r[0] for r in rows]
 
     def describe_table(self, table_name: str):
         """Return PostgreSQL column metadata."""
-        query = sql.SQL("""
+        query = sql.SQL(
+            """
             SELECT column_name, data_type, is_nullable
             FROM information_schema.columns
             WHERE table_name = %s;
-        """)
+        """
+        )
 
         def _exec(cur):
             cur.execute(query, (table_name,))
@@ -179,10 +183,12 @@ class PostgresClient:
         rows = [serialize_row(w) for w in works]
 
         # Build COPY … FROM STDIN
-        copy_sql = sql.SQL("""
+        copy_sql = sql.SQL(
+            """
             COPY {} ({})
             FROM STDIN WITH (FORMAT csv)
-        """).format(
+        """
+        ).format(
             sql.Identifier(table_name),
             sql.SQL(", ").join(sql.Identifier(c) for c in field_names),
         )
@@ -224,9 +230,11 @@ class PostgresClient:
             else:
                 raise ValueError("CSV must have a header row to infer column order.")
 
-        copy_sql = sql.SQL("""
+        copy_sql = sql.SQL(
+            """
             COPY {} ({}) FROM STDIN WITH (FORMAT csv)
-        """).format(
+        """
+        ).format(
             sql.Identifier(table_name),
             sql.SQL(", ").join(sql.Identifier(c) for c in columns),
         )
@@ -249,10 +257,12 @@ class PostgresClient:
             return
 
         cols = list(rows[0].keys())
-        query = sql.SQL("""
+        query = sql.SQL(
+            """
             INSERT INTO {} ({})
             VALUES ({})
-        """).format(
+        """
+        ).format(
             sql.Identifier(table_name),
             sql.SQL(", ").join(sql.Identifier(c) for c in cols),
             sql.SQL(", ").join(sql.Placeholder() for _ in cols),
@@ -399,11 +409,13 @@ class PostgresClient:
         if additional_fields:
             fields.extend(sql.Identifier(f) for f in additional_fields)
 
-        query = sql.SQL("""
+        query = sql.SQL(
+            """
             SELECT {fields}
             FROM openalex_vector_spaces
             WHERE publication_year BETWEEN %s AND %s
-        """).format(fields=sql.SQL(", ").join(fields))
+        """
+        ).format(fields=sql.SQL(", ").join(fields))
 
         def _exec(cur):
             cur.execute(query, (decade_start, decade_end))

@@ -1,26 +1,39 @@
 import asyncio
+import os
 import random
 import requests
 import time
 from tqdm import tqdm
 from typing import List, Dict
 
+from dotenv import load_dotenv
+
 from hvectorspaces.config.settings import OPENALEX_BASE, CONTACT_EMAIL
 from hvectorspaces.data.preprocessing import oa_id
 from hvectorspaces.utils.iter_utils import chunked
+
+load_dotenv()
 
 
 class OpenAlexClient:
     """High-level async client for OpenAlex API."""
 
-    def __init__(self, mailto: str = CONTACT_EMAIL, concurrency: int = 30):
+    def __init__(
+        self,
+        mailto: str = os.getenv("CONTACT_EMAIL"),
+        concurrency: int = 30,
+        api_key: str = os.getenv("OA_API_KEY"),
+    ):
         self.base = OPENALEX_BASE
         self.mailto = mailto
         self.sem = asyncio.Semaphore(concurrency)
+        self.api_key = api_key
 
     def _get(self, url, params, max_retries=5, backoff=1.5, timeout=30):
         if self.mailto:
             params["mailto"] = self.mailto
+        if self.api_key:
+            params["api_key"] = self.api_key
         for attempt in range(max_retries):
             try:
                 r = requests.get(url, params=params, timeout=timeout)
@@ -38,21 +51,24 @@ class OpenAlexClient:
     async def _aget(self, session, url, params, max_retries=5, backoff=1.5):
         if self.mailto:
             params["mailto"] = self.mailto
-        async with self.sem:
-            for attempt in range(max_retries):
-                try:
+        if self.api_key:
+            params["api_key"] = self.api_key
+        for attempt in range(max_retries):
+            delay = backoff ** attempt
+            try:
+                async with self.sem:
                     async with session.get(url, params=params) as r:
-                        await asyncio.sleep(random.uniform(0.05, 0.15))
                         if r.status == 429:
-                            await asyncio.sleep(int(r.headers.get("Retry-After", "2")))
-                            continue
-                        if r.status == 403:
-                            await asyncio.sleep(5)
-                            continue
-                        r.raise_for_status()
-                        return await r.json()
-                except Exception:
-                    await asyncio.sleep(backoff**attempt)
+                            delay = float(r.headers.get("Retry-After", "2"))
+                        elif r.status == 403:
+                            delay = 5.0
+                        else:
+                            r.raise_for_status()
+                            await asyncio.sleep(random.uniform(0.05, 0.15))
+                            return await r.json()
+            except Exception:
+                pass
+            await asyncio.sleep(delay)
         return {}
 
     async def fetch_citing_works(
@@ -72,6 +88,8 @@ class OpenAlexClient:
                 "filter": filter_str,
                 "cursor": cursor,
                 "per-page": 200,
+                "mailto": self.mailto,
+                "api_key": self.api_key,
             }
             if select:
                 params["select"] = select
@@ -112,7 +130,12 @@ class OpenAlexClient:
         out = []
         ids = [i.split("/")[-1] for i in id_list]
         for chunk in chunked(ids, batch_size):
-            params = {"filter": "ids.openalex:" + "|".join(chunk), "per-page": batch_size}
+            params = {
+                "filter": "ids.openalex:" + "|".join(chunk),
+                "per-page": batch_size,
+                "mailto": self.mailto,
+                "api_key": self.api_key,
+            }
             if select:
                 params["select"] = select
             data = self._get(f"{OPENALEX_BASE}/works", params)
@@ -122,7 +145,12 @@ class OpenAlexClient:
         return out
 
     def fetch_works_iter(self, search=None, filter_str=None, select=None, per_page=200):
-        params = {"per-page": per_page, "cursor": "*"}
+        params = {
+            "per-page": per_page,
+            "cursor": "*",
+            "mailto": self.mailto,
+            "api_key": self.api_key,
+        }
         if search:
             params["search"] = search
         if filter_str:

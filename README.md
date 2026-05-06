@@ -11,10 +11,7 @@ pip install .[dev]
 ## PostgreSQL Setup (skip if you already have a local PostgreSQL DB)
 This document explains how to set up a **local PostgreSQL database** that mirrors the data we previously hosted on **CockroachDB**.
 
-The local DB contains two tables:
-
-- `openalex_vector_spaces`
-- `per_decade_citation_graph`
+Each dataset version has its own PostgreSQL database (e.g. `hvectorspaces_v1`, `hvectorspaces_v2`), with the same table names across versions. The active version is selected via the `PG_DATABASE` env var.
 
 All data is stored locally in PostgreSQL and loaded from compressed CSV files that are **versioned in this repo** using Git LFS.
 
@@ -22,13 +19,17 @@ All data is stored locally in PostgreSQL and loaded from compressed CSV files th
 
 ### 1. Where the data lives in this repo
 
-The Cockroach → PostgreSQL export lives in:
+Data is organised in versioned subdirectories:
 
 ```text
 exported_db/
-├── schema.sql
-├── openalex_vector_spaces.csv.gz
-└── per_decade_citation_graph.csv.gz
+├── v1/
+│   ├── schema.sql
+│   ├── openalex_vector_spaces.csv.gz
+│   └── per_decade_citation_graph.csv.gz
+└── v2/
+    ├── schema.sql
+    └── openalex_vector_spaces.csv.gz
 ```
 
 The exported database files inside the `exported_db/` directory are large (.csv.gz).
@@ -87,20 +88,20 @@ For persistent PATH changes, add the above line to your `~/.bash_profile`, `~/.z
 
 ### 3. Create the local PostgreSQL database
 
-We assume a database name like `hvectorspaces` (you can change it, but then update .env accordingly).
+Create a database for each version you want to use, e.g. `hvectorspaces_v1`, `hvectorspaces_v2`.
 
 From a terminal:
 
 ```bash
-createdb hvectorspaces
-
+createdb hvectorspaces_v1
+createdb hvectorspaces_v2
 ```
 
 Or from psql:
 
 ```sql
-CREATE DATABASE hvectorspaces;
-
+CREATE DATABASE hvectorspaces_v1;
+CREATE DATABASE hvectorspaces_v2;
 ```
 
 ### 4. Configure environment variables
@@ -111,7 +112,7 @@ The Python clients expect standard PostgreSQL env vars. Create a .env file in th
 
 PG_HOST=localhost
 PG_PORT=5432
-PG_DATABASE=hvectorspaces
+PG_DATABASE=hvectorspaces_v2  # or hvectorspaces_v1
 PG_USER=<your_mac_username>
 PG_PASSWORD=
 ```
@@ -133,14 +134,13 @@ source .env
 In order to create the tables, run the following command from the terminal:
 
 ```bash
-psql -d hvectorspaces -f exported_db/schema.sql
+psql -d hvectorspaces_v2 -f exported_db/v2/schema.sql
 ```
 
 You can verify the tables exist by running
 
 ```bash
-psql -d hvectorspaces -c "\d+ openalex_vector_spaces"
-psql -d hvectorspaces -c "\d+ per_decade_citation_graph"
+psql -d hvectorspaces_v2 -c "\d+ openalex_vector_spaces"
 ```
 
 ### 6. Load the data from the compressed CSVs
@@ -157,11 +157,11 @@ This script should:
 
 Connect to PostgreSQL using the env vars in .env.
 
-Load:
+Load (for v2):
 
-`exported_db/openalex_vector_spaces.csv.gz` → `openalex_vector_spaces`
+`exported_db/v2/openalex_vector_spaces.csv.gz` → `openalex_vector_spaces`
 
-`exported_db/per_decade_citation_graph.csv.gz` → `per_decade_citation_graph`
+The active version is controlled by `DB_VERSION` at the top of the script and `PG_DATABASE` in your `.env`.
 
 If everything works, you should see log output indicating that the rows were loaded.
 
@@ -217,8 +217,8 @@ The main table used in this repository is `openalex_vector_spaces`, which contai
 
 The `scripts` folder contains scripts for data acquisition and processing. The main scripts are:
 
-- `create_postgresql_db.py`: This script was used in a migration from CockroachDB to PostgreSQL. It creates the `openalex_vector_spaces` table in the PostgreSQL instance with the appropriate schema and loads the data from local CSV files into the table.
-- `sql_upload_oa_data.py`: This script uploads OpenAlex data to the PostgreSQL instance. It reads data from a specified source and populates the `openalex_vector_spaces` table. Currently, it searches for all works that contain the term "vector space" in their title or abstract, were published after 1920 and have more than 20 citations. Starting from these seed works, it performs a breadth-first search in the citation network to collect all works that cite or are cited by the seed works, up to 2 hops away, filtering out those that have less than 20 citations.
+- `create_postgresql_db.py`: Creates the `openalex_vector_spaces` table in the target PostgreSQL database and loads the corresponding CSV from the versioned `exported_db/` subdirectory. The active version is set by `DB_VERSION` at the top of the script; point `PG_DATABASE` at the matching database before running.
+- `sql_upload_oa_data.py`: Fetches OpenAlex data and saves it as a gzipped CSV to `exported_db/v2/openalex_vector_spaces.csv.gz`. It searches for works containing "vector space", published after 1920 with more than 20 citations, then expands 2 hops through the citation network (same citation filter). Run this before `create_postgresql_db.py` to produce the CSV that gets loaded into Postgres.
 - `add_in_decade_references_column.py`: This script adds the `in_decade_references` column to the `openalex_vector_spaces` table. It populates this column with the list of cited works that were published in the same decade as the citing work.
 - `create_clusters.py`: This script uses a pre-defined clustering method (defaults to `leiden`) to create clusters of works within different decades based on their citation relationships. The script can be updated to fetch additional fields from the database as needed. It can be called from cli with
 
