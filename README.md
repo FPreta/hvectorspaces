@@ -209,6 +209,7 @@ The main table used in this repository is `openalex_vector_spaces`, which contai
 - `referenced_works`: List of OpenAlex work IDs cited by the work (array of strings)
 - `domain`: Domain of the work (string)
 - `field`: Field of study of the work (string)
+- `subfield`: Subfield of study of the work (string)
 - `topic`: Topic of the work (string)
 - `layer`: Number of hops from the seed for the work in the citation network (int)
 - `in_decade_references`: List of OpenAlex work IDs cited by the work in the same decade (array of strings)

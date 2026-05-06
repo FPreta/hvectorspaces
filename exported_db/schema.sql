@@ -8,6 +8,7 @@ CREATE TABLE public.openalex_vector_spaces (
     referenced_works JSONB,
     domain TEXT,
     field TEXT,
+    subfield TEXT,
     topic TEXT,
     layer BIGINT,
     in_decade_references JSONB DEFAULT '[]'::jsonb

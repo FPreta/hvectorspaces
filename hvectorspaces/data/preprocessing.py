@@ -48,15 +48,14 @@ def normalize_primary_topic(work):
     if work.get("primary_topic") is None:
         work["domain"] = None
         work["field"] = None
+        work["subfield"] = None
         work["topic"] = None
         return work
-    work["domain"] = (
-        work.get("primary_topic", {}).get("domain", {}).get("display_name", None)
-    )
-    work["field"] = (
-        work.get("primary_topic", {}).get("field", {}).get("display_name", None)
-    )
-    work["topic"] = work.get("primary_topic", {}).get("display_name", None)
+    pt = work.get("primary_topic", {})
+    work["domain"] = pt.get("domain", {}).get("display_name", None)
+    work["field"] = pt.get("field", {}).get("display_name", None)
+    work["subfield"] = pt.get("subfield", {}).get("display_name", None)
+    work["topic"] = pt.get("display_name", None)
     return work
 
 
